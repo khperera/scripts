@@ -5,27 +5,102 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Lifting Tracker (A-Upper / A-Lower)</title>
 <style>
-  :root { --bg:#0f1115; --card:#171a21; --muted:#8b95a7; --text:#e7ecf3; --accent:#71a8ff; --good:#37d67a; --bad:#ff5f57; }
-  *{box-sizing:border-box} body{margin:0;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--text)}
-  header{position:sticky;top:0;background:rgba(15,17,21,.8);backdrop-filter:blur(10px);border-bottom:1px solid #222;padding:10px 14px;display:flex;gap:10px;align-items:center;z-index:2}
-  h1{font-size:18px;margin:0 6px 0 0;}
-  main{padding:14px;max-width:980px;margin:0 auto}
-  .tabs{display:flex;gap:8px;flex-wrap:wrap}
-  .tab{padding:8px 12px;border:1px solid #2a2f3a;border-radius:999px;color:var(--muted);cursor:pointer}
-  .tab.active{background:var(--accent);border-color:var(--accent);color:#081020}
-  .row{display:flex;gap:10px;flex-wrap:wrap}
-  .card{background:var(--card);border:1px solid #222;border-radius:16px;padding:12px}
-  label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
-  input,select,button,textarea{background:#0f1218;color:var(--text);border:1px solid #2a2f3a;border-radius:10px;padding:8px 10px}
-  input:focus,select:focus,textarea:focus{outline:1px solid var(--accent)}
-  button{cursor:pointer}
-  table{width:100%;border-collapse:collapse;font-size:14px}
-  th,td{padding:8px;border-bottom:1px solid #262a33}
-  .tiny{font-size:12px;color:var(--muted)}
-  .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #2a2f3a;color:var(--muted);font-size:12px}
-  .good{color:var(--good)} .bad{color:var(--bad)}
-  .grid{display:grid;gap:10px}
-  @media(min-width:700px){ .grid-2{grid-template-columns:1fr 1fr} .grid-3{grid-template-columns:repeat(3,1fr)} }
+  :root { 
+    --bg: #0f1115; 
+    --card: #171a21; 
+    --muted: #8b95a7; 
+    --text: #e7ecf3; 
+    --accent: #71a8ff; 
+    --good: #37d67a; 
+    --bad: #ff5f57; 
+  }
+  * { box-sizing: border-box; }
+  body { 
+    margin: 0; 
+    font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial; 
+    background: var(--bg); 
+    color: var(--text); 
+  }
+  header { 
+    position: sticky; 
+    top: 0; 
+    background: rgba(15,17,21,.8); 
+    backdrop-filter: blur(10px); 
+    border-bottom: 1px solid #222; 
+    padding: 10px 14px; 
+    display: flex; 
+    gap: 10px; 
+    align-items: center; 
+    z-index: 2; 
+  }
+  h1 { font-size: 18px; margin: 0 6px 0 0; }
+  main { padding: 14px; max-width: 980px; margin: 0 auto; }
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tab { 
+    padding: 8px 12px; 
+    border: 1px solid #2a2f3a; 
+    border-radius: 999px; 
+    color: var(--muted); 
+    cursor: pointer; 
+    background: none;
+  }
+  .tab.active { 
+    background: var(--accent); 
+    border-color: var(--accent); 
+    color: #081020; 
+  }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .card { 
+    background: var(--card); 
+    border: 1px solid #222; 
+    border-radius: 16px; 
+    padding: 12px; 
+    margin-bottom: 12px;
+  }
+  label { 
+    font-size: 12px; 
+    color: var(--muted); 
+    display: block; 
+    margin-bottom: 4px; 
+  }
+  input, select, button, textarea { 
+    background: #0f1218; 
+    color: var(--text); 
+    border: 1px solid #2a2f3a; 
+    border-radius: 10px; 
+    padding: 8px 10px; 
+  }
+  input:focus, select:focus, textarea:focus { 
+    outline: 1px solid var(--accent); 
+  }
+  button { cursor: pointer; }
+  button:hover { background: #1a1d24; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 8px; border-bottom: 1px solid #262a33; }
+  .tiny { font-size: 12px; color: var(--muted); }
+  .pill { 
+    display: inline-block; 
+    padding: 2px 8px; 
+    border-radius: 999px; 
+    border: 1px solid #2a2f3a; 
+    color: var(--muted); 
+    font-size: 12px; 
+  }
+  .good { color: var(--good); }
+  .bad { color: var(--bad); }
+  .grid { display: grid; gap: 10px; }
+  .file-input { position: relative; }
+  .file-input input[type="file"] { 
+    position: absolute; 
+    opacity: 0; 
+    width: 100%; 
+    height: 100%; 
+    cursor: pointer; 
+  }
+  @media(min-width: 700px) { 
+    .grid-2 { grid-template-columns: 1fr 1fr; } 
+    .grid-3 { grid-template-columns: repeat(3, 1fr); } 
+  }
 </style>
 </head>
 <body>
@@ -37,11 +112,13 @@
     <button class="tab" data-page="exercises">Exercises</button>
     <button class="tab" data-page="history">History</button>
     <button class="tab" data-page="settings">Settings</button>
-    <button class="tab" data-page="rir">RIR Table</button>
   </div>
-  <div style="margin-left:auto" class="row">
+  <div style="margin-left: auto;" class="row">
     <button id="exportBtn">Export</button>
-    <label class="pill"><input type="file" id="importFile" hidden> Import</label>
+    <div class="file-input pill">
+      <input type="file" id="importFile" accept=".json">
+      Import
+    </div>
   </div>
 </header>
 
@@ -51,16 +128,16 @@
     <div class="row">
       <div class="card">
         <label>Week (1–6)</label>
-        <input id="week" type="number" min="1" max="6" value="1" style="width:90px">
+        <input id="week" type="number" min="1" max="6" value="1" style="width: 90px;">
       </div>
       <div class="card">
         <label>Day</label>
-    <select id="day"></select>
+        <select id="day"></select>
       </div>
-        <div class="card">
-          <label>&nbsp;</label>
-          <button id="advanceBtn">Advance Week/Day</button>
-        </div>
+      <div class="card">
+        <label>&nbsp;</label>
+        <button id="advanceBtn">Advance Week/Day</button>
+      </div>
       <div class="card">
         <label>Unit</label>
         <select id="unit">
@@ -68,41 +145,17 @@
           <option value="kg">kg</option>
         </select>
       </div>
-      <div class="card">
-        <label>Deload auto at week 6</label>
-        <span class="pill">-12.5% load, -1 set</span>
-      </div>
     </div>
-      <script>
-      function updateDayDropdown() {
-        const week = Number(document.getElementById('week').value || 1);
-        const daySel = document.getElementById('day');
-        daySel.innerHTML = '';
-        const parts = ['A', 'B'];
-        const splits = ['Upper', 'Lower'];
-        for (const part of parts) {
-          for (const split of splits) {
-            const value = `${week}-${part}-${split.toLowerCase()}`;
-            const label = `Week ${week} - ${part} ${split}`;
-            const opt = document.createElement('option');
-            opt.value = value;
-            opt.textContent = label;
-            daySel.appendChild(opt);
-          }
-        }
-      }
-      // Initialize dropdown on load
-      document.addEventListener('DOMContentLoaded', updateDayDropdown);
-      </script>
-    <div class="card" style="margin-top:12px">
-      <div class="row" style="align-items:center;justify-content:space-between">
+
+    <div class="card">
+      <div class="row" style="align-items: center; justify-content: space-between;">
         <div>
-          <strong id="todayTitle"></strong>
+          <strong id="todayTitle">Week 1 - A Upper</strong>
           <div class="tiny">Prescriptions are TM × %1RM (RPE chart) → rounded to plates.</div>
         </div>
         <button id="closeWeekBtn">Close Week (progress TMs)</button>
       </div>
-      <div id="todayList" style="margin-top:10px"></div>
+      <div id="todayList" style="margin-top: 10px;"></div>
     </div>
   </section>
 
@@ -111,22 +164,22 @@
     <div class="grid grid-2">
       <div class="card">
         <h3>A-Upper Template</h3>
-        <div id="tmpl-aupper"></div>
+        <div id="tmpl-a-upper"></div>
         <button onclick="addTemplateRow('A-Upper')">+ Add Exercise</button>
       </div>
       <div class="card">
         <h3>A-Lower Template</h3>
-        <div id="tmpl-alower"></div>
+        <div id="tmpl-a-lower"></div>
         <button onclick="addTemplateRow('A-Lower')">+ Add Exercise</button>
       </div>
       <div class="card">
         <h3>B-Upper Template</h3>
-        <div id="tmpl-bupper"></div>
+        <div id="tmpl-b-upper"></div>
         <button onclick="addTemplateRow('B-Upper')">+ Add Exercise</button>
       </div>
       <div class="card">
         <h3>B-Lower Template</h3>
-        <div id="tmpl-blower"></div>
+        <div id="tmpl-b-lower"></div>
         <button onclick="addTemplateRow('B-Lower')">+ Add Exercise</button>
       </div>
     </div>
@@ -136,30 +189,43 @@
   <!-- EXERCISES -->
   <section id="page-exercises" hidden>
     <div class="card">
-      <h3>Add exercise</h3>
+      <h3>Add Exercise</h3>
       <div class="row">
         <div><label>Name</label><input id="exName"></div>
-        <div><label>Category</label>
+        <div>
+          <label>Category</label>
           <select id="exCat">
-            <option>CHEST</option><option>BACK</option><option>QUADS</option><option>HAMSTRINGS</option>
-          </select></div>
+            <option>CHEST</option>
+            <option>BACK</option>
+            <option>QUADS</option>
+            <option>HAMSTRINGS</option>
+          </select>
+        </div>
         <div><label>Training Max</label><input id="exTM" type="number" step="0.5"></div>
         <div><label>&nbsp;</label><button onclick="addExercise()">Add</button></div>
       </div>
     </div>
-    <div class="card" style="margin-top:12px">
+    <div class="card">
       <h3>Exercises</h3>
-      <table id="exTable"><thead><tr><th>Name</th><th>Category</th><th>TM</th><th></th></tr></thead><tbody></tbody></table>
+      <table id="exTable">
+        <thead>
+          <tr><th>Name</th><th>Category</th><th>TM</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
   </section>
 
   <!-- HISTORY -->
   <section id="page-history" hidden>
     <div class="card">
-      <h3>Recent sets</h3>
-      <table id="logTable"><thead>
-        <tr><th>Date</th><th>Exercise</th><th>W×R@RPE</th><th>e1RM</th></tr>
-      </thead><tbody></tbody></table>
+      <h3>Recent Sets</h3>
+      <table id="logTable">
+        <thead>
+          <tr><th>Date</th><th>Exercise</th><th>W×R@RPE</th><th>e1RM</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
   </section>
 
@@ -178,479 +244,668 @@
           <div><label>Lower down (struggle)</label><input id="downLower" type="number" step="0.1" value="2.5"> %</div>
         </div>
         <p class="tiny">Cap TM ≤ 97.5% of best rolling e1RM; floor ≥ 85%.</p>
-        <button onclick="saveSettings()">Save settings</button>
+        <button onclick="saveSettings()">Save Settings</button>
       </div>
       <div class="card">
-        <h3>Plate rounding</h3>
+        <h3>Plate Rounding</h3>
         <label>Min per-side plate (lb or kg)</label>
         <input id="minJump" type="number" step="0.25" value="2.5">
       </div>
     </div>
   </section>
-
-  <!-- RIR TABLE -->
-  <section id="page-rir" hidden>
-    <div class="card">
-      <h3>Edit RIR Table</h3>
-      <table id="rirTable">
-        <thead>
-          <tr>
-            <th>Identifier</th>
-            <th>Week</th>
-            <th>Day</th>
-            <th>Body Part</th>
-            <th>RIR</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Rows will be dynamically populated -->
-        </tbody>
-      </table>
-      <button onclick="addRIRRow()">+ Add Row</button>
-      <button onclick="saveRIRTable()">Save Changes</button>
-    </div>
-  </section>
 </main>
 
 <script>
-/* ---------- Storage ---------- */
+/* ---------- Constants and State ---------- */
 const STORE_KEY = 'lifttracker_v1';
-const state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
-  unit:'lb',
-  settings:{ upUpperStrong:1.5, upUpperSmall:0.5, downUpper:2.5, upLowerStrong:1.5, upLowerSmall:1.0, downLower:2.5, minJump:2.5 },
-  exercises: [ // seed examples
-    {id:1,name:'Barbell Bench Press',cat:'CHEST',tm:185},
-    {id:2,name:'Back Squat',cat:'QUADS',tm:275},
-    {id:3,name:'Barbell Row',cat:'BACK',tm:185},
-    {id:4,name:'RDL',cat:'HAMSTRINGS',tm:225},
-  ],
-  nextId:5,
-  templates:{
-    'A-Upper': [ {exId:1,reps:5,rpe:8.5,sets:4},{exId:3,reps:6,rpe:8.0,sets:3} ],
-    'A-Lower': [ {exId:2,reps:5,rpe:8.5,sets:4},{exId:4,reps:6,rpe:8.0,sets:3} ],
-    'B Upper': [ {exId:2,reps:5,rpe:8.5,sets:4},{exId:4,reps:6,rpe:8.0,sets:3} ],
-    'B Lower': [ {exId:2,reps:5,rpe:8.5,sets:4},{exId:4,reps:6,rpe:8.0,sets:3} ]
-  },
-  log: [] // {date, exId, weight, reps, rpe, e1rm, week, half}
-};
-function persist(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
 
-/* ---------- Calculations ---------- */
-const RPE = { // %1RM
-  3:{8.0:.89,8.5:.90,9.0:.92},
-  4:{8.0:.86,8.5:.87,9.0:.89},
-  5:{8.0:.83,8.5:.85,9.0:.86},
-  6:{8.0:.81,8.5:.82,9.0:.84},
-  8:{8.0:.76,8.5:.78,9.0:.80},
- 10:{8.0:.72,8.5:.74,9.0:.76}
+// RPE to %1RM conversion table
+const RPE_TABLE = {
+  3: { 8.0: 0.89, 8.5: 0.90, 9.0: 0.92 },
+  4: { 8.0: 0.86, 8.5: 0.87, 9.0: 0.89 },
+  5: { 8.0: 0.83, 8.5: 0.85, 9.0: 0.86 },
+  6: { 8.0: 0.81, 8.5: 0.82, 9.0: 0.84 },
+  8: { 8.0: 0.76, 8.5: 0.78, 9.0: 0.80 },
+  10: { 8.0: 0.72, 8.5: 0.74, 9.0: 0.76 }
 };
-const isLower = cat => (cat==='QUADS'||cat==='HAMSTRINGS');
-const e1rm = (w, r) => r <= 7 ? w * (1 + 0.0333 * r) : w * Math.pow(r, 0.1);
-function roundToPlates(target, unit, minJump){
-  const jump = minJump ?? (unit==='lb'?2.5:1.25);
-  const total = jump*2;
-  return Math.round(target/total)*total;
+
+// Default state
+const DEFAULT_STATE = {
+  unit: 'lb',
+  settings: {
+    upUpperStrong: 1.5,
+    upUpperSmall: 0.5,
+    downUpper: 2.5,
+    upLowerStrong: 1.5,
+    upLowerSmall: 1.0,
+    downLower: 2.5,
+    minJump: 2.5
+  },
+  exercises: [
+    { id: 1, name: 'Barbell Bench Press', cat: 'CHEST', tm: 185 },
+    { id: 2, name: 'Back Squat', cat: 'QUADS', tm: 275 },
+    { id: 3, name: 'Barbell Row', cat: 'BACK', tm: 185 },
+    { id: 4, name: 'RDL', cat: 'HAMSTRINGS', tm: 225 }
+  ],
+  nextId: 5,
+  templates: {
+    'A-Upper': [
+      { exId: 1, reps: 5, rpe: 8.5, sets: 4 },
+      { exId: 3, reps: 6, rpe: 8.0, sets: 3 }
+    ],
+    'A-Lower': [
+      { exId: 2, reps: 5, rpe: 8.5, sets: 4 },
+      { exId: 4, reps: 6, rpe: 8.0, sets: 3 }
+    ],
+    'B-Upper': [
+      { exId: 1, reps: 4, rpe: 8.0, sets: 3 },
+      { exId: 3, reps: 5, rpe: 8.0, sets: 3 }
+    ],
+    'B-Lower': [
+      { exId: 2, reps: 4, rpe: 8.0, sets: 3 },
+      { exId: 4, reps: 5, rpe: 8.0, sets: 3 }
+    ]
+  },
+  log: []
+};
+
+// Load or initialize state
+let state = JSON.parse(localStorage.getItem(STORE_KEY)) || JSON.parse(JSON.stringify(DEFAULT_STATE));
+
+/* ---------- Utility Functions ---------- */
+function persist() {
+  localStorage.setItem(STORE_KEY, JSON.stringify(state));
 }
-function prescribeLoad(tm, reps, rpe, unit, minJump){
-  const p = RPE[reps]?.[rpe];
-  if(!p) return 0;
-  return roundToPlates(tm*p, unit, minJump);
+
+function $(selector) {
+  return document.querySelector(selector);
 }
-function deload(week, load, sets){
-  if(week==6) return [load*0.875, Math.max(1, sets-1)];
+
+function fmt(number) {
+  return Number(number).toFixed(0);
+}
+
+function isLowerBody(category) {
+  return category === 'QUADS' || category === 'HAMSTRINGS';
+}
+
+/* ---------- Calculation Functions ---------- */
+function calculateE1RM(weight, reps) {
+  if (reps <= 7) {
+    return weight * (1 + 0.0333 * reps);
+  }
+  return weight * Math.pow(reps, 0.1);
+}
+
+function roundToPlates(target, unit, minJump) {
+  const jump = minJump || (unit === 'lb' ? 2.5 : 1.25);
+  const plateWeight = jump * 2; // Both sides of barbell
+  return Math.round(target / plateWeight) * plateWeight;
+}
+
+function prescribeLoad(trainingMax, reps, rpe, unit, minJump) {
+  const percentage = RPE_TABLE[reps]?.[rpe];
+  if (!percentage) return 0;
+  
+  const prescribedWeight = trainingMax * percentage;
+  return roundToPlates(prescribedWeight, unit, minJump);
+}
+
+function applyDeload(week, load, sets) {
+  if (week === 6) {
+    return [load * 0.875, Math.max(1, sets - 1)];
+  }
   return [load, sets];
 }
-function nextSetAdjustment(targetRpe, actualRpe, repsHit){
-  if(!repsHit || actualRpe >= targetRpe + 1.0) return 0.95;
-  if(actualRpe <= targetRpe - 1.0) return 1.025;
-  return 1.0;
-}
-function bestRollingE1rm(exId, days=42){
-  const cutoff = Date.now()-days*86400000;
-  let best = 0;
-  for(const s of state.log){
-    if(s.exId===exId && new Date(s.date).getTime()>=cutoff) best = Math.max(best, s.e1rm);
-  }
-  return best || 0;
-}
-function progressTm(ex){
-  // compute weekly score from last 7 days
-  const cutoff = Date.now()-7*86400000;
-  let score=0, bestWeek=0;
-  for(const s of state.log){
-    if(s.exId!==ex.id) continue;
-    if(new Date(s.date).getTime() < cutoff) continue;
-    // we don't store target per set; treat >= target reps as "hit" by approximating with logged reps
-    // (you can store targets when rendering the day to be exact)
-    const delta = (s.rpe >= 9.5 ? -1 : (s.rpe <= 8.5 ? 1 : 0.5)); // simple proxy around RPE target 8.5
-    score += delta;
-    bestWeek = Math.max(bestWeek, s.e1rm);
-  }
-  const set = state.settings;
-  const strongUp = ex.cat && isLower(ex.cat) ? set.upLowerStrong : set.upUpperStrong;
-  const smallUp  = ex.cat && isLower(ex.cat) ? set.upLowerSmall  : set.upUpperSmall;
-  const down     = ex.cat && isLower(ex.cat) ? set.downLower     : set.downUpper;
-  let proposed = ex.tm;
-  if(score >= 2) proposed = ex.tm * (1+strongUp/100);
-  else if(score >= 0.5) proposed = ex.tm * (1+smallUp/100);
-  else if(score <= -1) proposed = ex.tm * (1-down/100);
 
-  const ref = Math.max(bestRollingE1rm(ex.id), bestWeek, ex.tm); // safety
-  const cap = ref*0.975, floor = ref*0.85;
-  ex.tm = Math.min(Math.max(proposed, floor), cap) || ex.tm;
+function getNextSetAdjustment(targetRpe, actualRpe, repsCompleted, targetReps) {
+  if (!repsCompleted || repsCompleted < targetReps || actualRpe >= targetRpe + 1.0) {
+    return 0.95; // Reduce weight
+  }
+  if (actualRpe <= targetRpe - 1.0) {
+    return 1.025; // Increase weight
+  }
+  return 1.0; // Maintain weight
 }
 
-/* ---------- UI helpers ---------- */
-const $ = s => document.querySelector(s);
-function fmt(n){ return Number(n).toFixed(0); }
-function renderTabs(){
-  document.querySelectorAll('.tab').forEach(btn=>{
-    btn.onclick = ()=>{
-      document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      const page = btn.dataset.page;
-      document.querySelectorAll('main section').forEach(sec=>sec.hidden=true);
-      $('#page-'+page).hidden=false;
-      if(page==='today') renderToday();
-      if(page==='templates') renderTemplates();
-      if(page==='exercises') renderExercises();
-      if(page==='history') renderHistory();
-      if(page==='settings') renderSettings();
+function getBestRollingE1RM(exerciseId, days = 42) {
+  const cutoffDate = Date.now() - days * 86400000;
+  let bestE1RM = 0;
+  
+  for (const set of state.log) {
+    if (set.exId === exerciseId && new Date(set.date).getTime() >= cutoffDate) {
+      bestE1RM = Math.max(bestE1RM, set.e1rm);
     }
+  }
+  
+  return bestE1RM;
+}
+
+function progressTrainingMax(exercise) {
+  const cutoffDate = Date.now() - 7 * 86400000;
+  let score = 0;
+  let bestWeeklyE1RM = 0;
+  
+  // Calculate weekly performance score
+  for (const set of state.log) {
+    if (set.exId !== exercise.id) continue;
+    if (new Date(set.date).getTime() < cutoffDate) continue;
+    
+    // Simplified scoring based on RPE (in reality, you'd compare to target)
+    const rpeScore = set.rpe >= 9.5 ? -1 : (set.rpe <= 8.5 ? 1 : 0.5);
+    score += rpeScore;
+    bestWeeklyE1RM = Math.max(bestWeeklyE1RM, set.e1rm);
+  }
+  
+  // Get progression rates based on body part
+  const settings = state.settings;
+  const isLower = isLowerBody(exercise.cat);
+  const strongUp = isLower ? settings.upLowerStrong : settings.upUpperStrong;
+  const smallUp = isLower ? settings.upLowerSmall : settings.upUpperSmall;
+  const down = isLower ? settings.downLower : settings.downUpper;
+  
+  // Calculate new TM based on score
+  let newTM = exercise.tm;
+  if (score >= 2) {
+    newTM = exercise.tm * (1 + strongUp / 100);
+  } else if (score >= 0.5) {
+    newTM = exercise.tm * (1 + smallUp / 100);
+  } else if (score <= -1) {
+    newTM = exercise.tm * (1 - down / 100);
+  }
+  
+  // Apply safety bounds
+  const referenceMax = Math.max(getBestRollingE1RM(exercise.id), bestWeeklyE1RM, exercise.tm);
+  const cap = referenceMax * 0.975;
+  const floor = referenceMax * 0.85;
+  
+  exercise.tm = Math.min(Math.max(newTM, floor), cap) || exercise.tm;
+}
+
+/* ---------- Day Management ---------- */
+function updateDayDropdown() {
+  const week = Number($('#week').value) || 1;
+  const daySelect = $('#day');
+  daySelect.innerHTML = '';
+  
+  const days = [
+    { value: `${week}-A-upper`, label: `Week ${week} - A Upper` },
+    { value: `${week}-A-lower`, label: `Week ${week} - A Lower` },
+    { value: `${week}-B-upper`, label: `Week ${week} - B Upper` },
+    { value: `${week}-B-lower`, label: `Week ${week} - B Lower` }
+  ];
+  
+  days.forEach(day => {
+    const option = document.createElement('option');
+    option.value = day.value;
+    option.textContent = day.label;
+    daySelect.appendChild(option);
   });
 }
 
-// Update the logic to query templates correctly based on dropdown selection
-function getTemplateKeyFromDropdown(dayValue) {
+function getTemplateKeyFromDayValue(dayValue) {
   const [week, part, split] = dayValue.split('-');
-  const splitLabel = split.charAt(0).toUpperCase() + split.slice(1); // Capitalize first letter
-  return `${part}-${splitLabel}`;
+  return `${part}-${split.charAt(0).toUpperCase() + split.slice(1)}`;
 }
 
-// Update renderToday to use the correct template key
-function renderToday() {
-  $('#unit').value = state.unit;
-  const week = Number($('#week').value || 1);
-  const dayValue = $('#day').value;
-  const templateKey = getTemplateKeyFromDropdown(dayValue);
-  $('#todayTitle').textContent = `Week ${week} - ${templateKey.replace('-', ' ')}`;
-  const cont = $('#todayList'); cont.innerHTML = '';
-  const items = state.templates[templateKey] || [];
-  if (items.length === 0) {
-    cont.innerHTML = '<div class="tiny">No exercises in this template yet.</div>';
-    return;
-  }
-  for (const it of items) {
-    const ex = state.exercises.find(e => e.id === it.exId);
-    if (!ex) {
-      console.warn(`Exercise with ID ${it.exId} not found in state.exercises`);
-      continue;
-    }
-    const rir = getRIR(week, templateKey.split('-')[0] === 'A' ? 1 : 2, ex.cat);
-    let load = prescribeLoad(ex.tm, it.reps, it.rpe, state.unit, state.settings.minJump);
-    let sets = it.sets;
-    [load, sets] = deload(week, load, sets);
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <div class="row" style="justify-content:space-between;align-items:center">
-        <div>
-          <div><strong>${ex.name}</strong> <span class="pill">${ex.cat}</span></div>
-          <div class="tiny">TM ${fmt(ex.tm)} ${state.unit} • Expected: <b>${fmt(load)}</b> × ${it.reps} × ${sets} @ RPE ${it.rpe} • RIR: ${rir ?? 'N/A'}</div>
-        </div>
-        <div class="row">
-          <div><label>Weight</label><input type="number" step="0.5" value="${fmt(load)}" style="width:110px" class="in-weight"></div>
-          <div><label>Reps</label><input type="number" value="${it.reps}" style="width:80px" class="in-reps"></div>
-          <div><label>RPE</label><input type="number" step="0.5" value="${it.rpe}" style="width:80px" class="in-rpe"></div>
-          <div><label>&nbsp;</label><button class="logBtn">Add set</button></div>
-        </div>
-      </div>
-      <div class="tiny" style="margin-top:6px" hidden></div>
-    `;
-    card.querySelector('.logBtn').onclick = () => {
-      const w = Number(card.querySelector('.in-weight').value);
-      const r = Number(card.querySelector('.in-reps').value);
-      const rpe = Number(card.querySelector('.in-rpe').value);
-      const E = e1rm(w, r);
-      state.log.unshift({ date: new Date().toISOString(), exId: ex.id, weight: w, reps: r, rpe: rpe, e1rm: E, week, part: templateKey.split('-')[0], split: templateKey.split('-')[1] });
-      persist();
-      const factor = nextSetAdjustment(it.rpe, rpe, r >= it.reps);
-      const next = roundToPlates(w * factor, state.unit, state.settings.minJump);
-      const hint = card.querySelector('.tiny:last-child');
-      hint.hidden = false;
-      hint.innerHTML = `Logged. e1RM <b>${E.toFixed(1)}</b>. Suggested next set: <b>${fmt(next)}</b> ${state.unit}.`;
-      renderHistory(true);
-    };
-    cont.appendChild(card);
-  }
-}
-
-/* ---------- Templates ---------- */
-function renderTemplates(){
-  ['A-Upper', 'A-Lower', 'B-Upper', 'B-Lower'].forEach(code=>{
-    const box = document.querySelector(`#tmpl-${code.replace('-', '').toLowerCase()}`);
-    box.innerHTML='';
-    const arr = state.templates[code]||[];
-    arr.forEach((t,i)=>{
-      const ex = state.exercises.find(e=>e.id===t.exId);
-      const row = document.createElement('div');
-      row.className='row'; row.style.marginBottom='8px';
-      row.innerHTML = `
-        <div><label>Exercise</label>
-          <select class="sel-ex"></select>
-        </div>
-        <div><label>Reps</label><input class="in-reps" type="number" value="${t.reps}" style="width:80px"></div>
-        <div><label>RPE</label><input class="in-rpe" type="number" step="0.5" value="${t.rpe}" style="width:80px"></div>
-        <div><label>Sets</label><input class="in-sets" type="number" value="${t.sets}" style="width:80px"></div>
-        <div><label>&nbsp;</label><button class="del">Delete</button></div>
-      `;
-      const sel = row.querySelector('.sel-ex');
-      state.exercises.forEach(e=>{
-        const opt = document.createElement('option'); opt.value=e.id; opt.textContent=e.name;
-        if(e.id===t.exId) opt.selected=true;
-        sel.appendChild(opt);
-      });
-      sel.onchange = ()=>{ t.exId = Number(sel.value); persist(); };
-      row.querySelector('.in-reps').onchange = e=>{ t.reps=Number(e.target.value); persist(); };
-      row.querySelector('.in-rpe').onchange = e=>{ t.rpe=Number(e.target.value); persist(); };
-      row.querySelector('.in-sets').onchange = e=>{ t.sets=Number(e.target.value); persist(); };
-      row.querySelector('.del').onclick = ()=>{ arr.splice(i,1); persist(); renderTemplates(); };
-      box.appendChild(row);
-    });
-    const addBtn = document.createElement('button');
-    addBtn.textContent = '+ Add Exercise';
-    addBtn.onclick = () => {
-      arr.push({ exId: state.exercises[0]?.id || 0, reps: 5, rpe: 8.5, sets: 3 });
-      renderTemplates();
-    };
-    box.appendChild(addBtn);
-  });
-}
-function addTemplateRow(code){
-  (state.templates[code] ||= []).push({exId:state.exercises[0]?.id, reps:5, rpe:8.5, sets:3});
-  persist(); renderTemplates();
-}
-
-/* ---------- Exercises ---------- */
-function renderExercises(){
-  const body = $('#exTable tbody'); body.innerHTML='';
-  for(const ex of state.exercises){
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${ex.name}</td>
-      <td>${ex.cat}</td>
-      <td><input type="number" step="0.5" value="${ex.tm}" style="width:100px"></td>
-      <td><button class="rm">Delete</button></td>`;
-    tr.querySelector('input').onchange = e=>{ ex.tm=Number(e.target.value); persist(); };
-    tr.querySelector('.rm').onclick = ()=>{ 
-      if(confirm('Delete exercise and remove from templates?')){
-        state.templates['A-Upper'] = (state.templates['A-Upper']||[]).filter(t=>t.exId!==ex.id);
-        state.templates['A-Lower'] = (state.templates['A-Lower']||[]).filter(t=>t.exId!==ex.id);
-        state.templates['B-Upper'] = (state.templates['B-Upper']||[]).filter(t=>t.exId!==ex.id);
-        state.templates['B-Lower'] = (state.templates['B-Lower']||[]).filter(t=>t.exId!==ex.id);
-        state.exercises = state.exercises.filter(e=>e.id!==ex.id);
-        persist(); renderExercises(); renderTemplates(); renderToday();
-      }
-    };
-    body.appendChild(tr);
-  }
-}
-function addExercise(){
-  const name = $('#exName').value.trim(); if(!name) return;
-  const cat = $('#exCat').value; const tm = Number($('#exTM').value||0);
-  state.exercises.push({id:state.nextId++, name, cat, tm});
-  $('#exName').value=''; $('#exTM').value='';
-  persist(); renderExercises(); renderTemplates();
-}
-
-/* ---------- History ---------- */
-function renderHistory(skipTop=false){
-  const body = $('#logTable tbody'); body.innerHTML='';
-  for(const s of state.log.slice(0,200)){
-    const ex = state.exercises.find(e=>e.id===s.exId);
-    const tr = document.createElement('tr');
-    const d = new Date(s.date);
-    tr.innerHTML = `<td>${d.toLocaleString()}</td>
-      <td>${ex?.name||'?'}</td>
-      <td>${fmt(s.weight)}×${s.reps}@${s.rpe}</td>
-      <td>${s.e1rm.toFixed(1)}</td>`;
-    body.appendChild(tr);
-  }
-}
-
-/* ---------- Settings / Export / Import ---------- */
-function renderSettings(){
-  $('#unit').value = state.unit;
-  $('#minJump').value = state.settings.minJump;
-  $('#upUpperStrong').value = state.settings.upUpperStrong;
-  $('#upUpperSmall').value  = state.settings.upUpperSmall;
-  $('#downUpper').value     = state.settings.downUpper;
-  $('#upLowerStrong').value = state.settings.upLowerStrong;
-  $('#upLowerSmall').value  = state.settings.upLowerSmall;
-  $('#downLower').value     = state.settings.downLower;
-}
-function saveSettings(){
-  state.unit = $('#unit').value;
-  state.settings.minJump = Number($('#minJump').value);
-  state.settings.upUpperStrong = Number($('#upUpperStrong').value);
-  state.settings.upUpperSmall  = Number($('#upUpperSmall').value);
-  state.settings.downUpper     = Number($('#downUpper').value);
-  state.settings.upLowerStrong = Number($('#upLowerStrong').value);
-  state.settings.upLowerSmall  = Number($('#upLowerSmall').value);
-  state.settings.downLower     = Number($('#downLower').value);
-  persist(); alert('Saved.');
-}
-$('#unit').onchange = ()=>{ state.unit=$('#unit').value; persist(); renderToday(); };
-$('#week').onchange = function() {
-  updateDayDropdown();
-  renderToday();
-};
-$('#day').onchange = renderToday;
-
-// Advance Week/Day button logic for new dropdown
-function getDayOptions(week) {
-  const parts = ['A', 'B'];
-  const splits = ['upper', 'lower'];
-  const opts = [];
-  for (const part of parts) {
-    for (const split of splits) {
-      opts.push({week, part, split});
-    }
-  }
-  return opts;
-}
-
-function getCurrentAdvanceIndex() {
+function getCurrentDayIndex() {
   const week = Number($('#week').value);
   const dayValue = $('#day').value;
-  const opts = getDayOptions(week);
-  return opts.findIndex(o => `${o.week}-${o.part}-${o.split}` === dayValue);
+  const days = [`${week}-A-upper`, `${week}-A-lower`, `${week}-B-upper`, `${week}-B-lower`];
+  return days.indexOf(dayValue);
 }
 
-$('#advanceBtn').onclick = function() {
+function advanceDay() {
   let week = Number($('#week').value);
-  let opts = getDayOptions(week);
-  let idx = getCurrentAdvanceIndex();
-  if (idx === opts.length - 1) {
-    // If last (B Lower), go to next week and start at A Upper
+  let currentIndex = getCurrentDayIndex();
+  
+  if (currentIndex === 3) { // Last day (B Lower)
     week = week === 6 ? 1 : week + 1;
     $('#week').value = week;
     updateDayDropdown();
     $('#day').value = `${week}-A-upper`;
   } else {
-    idx = idx + 1;
-    $('#day').value = `${opts[idx].week}-${opts[idx].part}-${opts[idx].split}`;
+    currentIndex++;
+    const days = [`${week}-A-upper`, `${week}-A-lower`, `${week}-B-upper`, `${week}-B-lower`];
+    $('#day').value = days[currentIndex];
   }
+  
   renderToday();
-};
+}
 
-$('#exportBtn').onclick = ()=>{
-  const blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='lifttracker.json'; a.click();
-};
-$('#importFile').onchange = async (e)=>{
-  const file = e.target.files[0]; if(!file) return;
-  const txt = await file.text();
-  Object.assign(state, JSON.parse(txt));
-  persist(); renderSettings(); renderExercises(); renderTemplates(); renderToday(); renderHistory();
-  alert('Imported.');
-};
-
-/* ---------- Close week (progress TMs) ---------- */
-$('#closeWeekBtn').onclick = ()=>{
-  for(const ex of state.exercises){ progressTm(ex); }
-  persist(); alert('Week closed. TMs updated.'); renderExercises(); renderToday();
-};
-
-/* ---------- RIR TABLE ---------- */
-const RIR_TABLE = [
-  { identifier: 'Default', week: 1, day: 1, bodyPart: 'Upper', rir: 2 },
-  { identifier: 'Default', week: 1, day: 2, bodyPart: 'Lower', rir: 2 },
-];
-
-function renderRIRTable() {
-  const tableBody = document.querySelector('#rirTable tbody');
-  tableBody.innerHTML = '';
-  RIR_TABLE.forEach((row, index) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><input type="text" value="${row.identifier}" /></td>
-      <td><input type="number" value="${row.week}" /></td>
-      <td><input type="number" value="${row.day}" /></td>
-      <td><input type="text" value="${row.bodyPart}" /></td>
-      <td><input type="number" value="${row.rir}" /></td>
-      <td><button onclick="deleteRIRRow(${index})">Delete</button></td>
-    `;
-    tableBody.appendChild(tr);
+/* ---------- Rendering Functions ---------- */
+function renderTabs() {
+  document.querySelectorAll('.tab').forEach(button => {
+    button.onclick = () => {
+      // Update active tab
+      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      button.classList.add('active');
+      
+      // Show corresponding page
+      const page = button.dataset.page;
+      document.querySelectorAll('main section').forEach(section => section.hidden = true);
+      $(`#page-${page}`).hidden = false;
+      
+      // Render page content
+      switch (page) {
+        case 'today': renderToday(); break;
+        case 'templates': renderTemplates(); break;
+        case 'exercises': renderExercises(); break;
+        case 'history': renderHistory(); break;
+        case 'settings': renderSettings(); break;
+      }
+    };
   });
 }
 
-function addRIRRow() {
-  RIR_TABLE.push({ identifier: '', week: 1, day: 1, bodyPart: '', rir: 0 });
-  renderRIRTable();
+function renderToday() {
+  $('#unit').value = state.unit;
+  
+  const week = Number($('#week').value) || 1;
+  const dayValue = $('#day').value;
+  const templateKey = getTemplateKeyFromDayValue(dayValue);
+  
+  $('#todayTitle').textContent = `Week ${week} - ${templateKey.replace('-', ' ')}`;
+  
+  const container = $('#todayList');
+  container.innerHTML = '';
+  
+  const templateItems = state.templates[templateKey] || [];
+  
+  if (templateItems.length === 0) {
+    container.innerHTML = '<div class="tiny">No exercises in this template yet.</div>';
+    return;
+  }
+  
+  templateItems.forEach(item => {
+    const exercise = state.exercises.find(ex => ex.id === item.exId);
+    if (!exercise) return;
+    
+    let prescribedLoad = prescribeLoad(exercise.tm, item.reps, item.rpe, state.unit, state.settings.minJump);
+    let prescribedSets = item.sets;
+    
+    // Apply deload if week 6
+    [prescribedLoad, prescribedSets] = applyDeload(week, prescribedLoad, prescribedSets);
+    
+    const exerciseCard = document.createElement('div');
+    exerciseCard.className = 'card';
+    exerciseCard.innerHTML = `
+      <div class="row" style="justify-content: space-between; align-items: center;">
+        <div>
+          <div><strong>${exercise.name}</strong> <span class="pill">${exercise.cat}</span></div>
+          <div class="tiny">TM ${fmt(exercise.tm)} ${state.unit} • Expected: <b>${fmt(prescribedLoad)}</b> × ${item.reps} × ${prescribedSets} @ RPE ${item.rpe}</div>
+        </div>
+        <div class="row">
+          <div><label>Weight</label><input type="number" step="0.5" value="${fmt(prescribedLoad)}" style="width: 110px;" class="weight-input"></div>
+          <div><label>Reps</label><input type="number" value="${item.reps}" style="width: 80px;" class="reps-input"></div>
+          <div><label>RPE</label><input type="number" step="0.5" value="${item.rpe}" style="width: 80px;" class="rpe-input"></div>
+          <div><label>&nbsp;</label><button class="log-btn">Add Set</button></div>
+        </div>
+      </div>
+      <div class="tiny feedback" style="margin-top: 6px;" hidden></div>
+    `;
+    
+    // Add event listener for logging sets
+    exerciseCard.querySelector('.log-btn').onclick = () => {
+      const weight = Number(exerciseCard.querySelector('.weight-input').value);
+      const reps = Number(exerciseCard.querySelector('.reps-input').value);
+      const rpe = Number(exerciseCard.querySelector('.rpe-input').value);
+      
+      if (!weight || !reps || !rpe) return;
+      
+      const e1rm = calculateE1RM(weight, reps);
+      
+      // Log the set
+      state.log.unshift({
+        date: new Date().toISOString(),
+        exId: exercise.id,
+        weight: weight,
+        reps: reps,
+        rpe: rpe,
+        e1rm: e1rm,
+        week: week,
+        day: templateKey
+      });
+      
+      persist();
+      
+      // Calculate next set suggestion
+      const adjustmentFactor = getNextSetAdjustment(item.rpe, rpe, reps, item.reps);
+      const nextWeight = roundToPlates(weight * adjustmentFactor, state.unit, state.settings.minJump);
+      
+      // Show feedback
+      const feedback = exerciseCard.querySelector('.feedback');
+      feedback.hidden = false;
+      feedback.innerHTML = `Logged! e1RM: <b>${e1rm.toFixed(1)}</b>. Next set suggestion: <b>${fmt(nextWeight)}</b> ${state.unit}`;
+      
+      // Update weight input for next set
+      exerciseCard.querySelector('.weight-input').value = fmt(nextWeight);
+      
+      renderHistory();
+    };
+    
+    container.appendChild(exerciseCard);
+  });
 }
 
-function deleteRIRRow(index) {
-  RIR_TABLE.splice(index, 1);
-  renderRIRTable();
-}
-
-function saveRIRTable() {
-  const rows = document.querySelectorAll('#rirTable tbody tr');
-  RIR_TABLE.length = 0;
-  rows.forEach(row => {
-    const inputs = row.querySelectorAll('input');
-    RIR_TABLE.push({
-      identifier: inputs[0].value,
-      week: Number(inputs[1].value),
-      day: Number(inputs[2].value),
-      bodyPart: inputs[3].value,
-      rir: Number(inputs[4].value),
+function renderTemplates() {
+  const templateKeys = ['A-Upper', 'A-Lower', 'B-Upper', 'B-Lower'];
+  
+  templateKeys.forEach(templateKey => {
+    const containerId = `tmpl-${templateKey.toLowerCase().replace('-', '-')}`;
+    const container = $(`#${containerId}`);
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    const templateItems = state.templates[templateKey] || [];
+    
+    templateItems.forEach((item, index) => {
+      const exercise = state.exercises.find(ex => ex.id === item.exId);
+      
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.style.marginBottom = '8px';
+      row.innerHTML = `
+        <div>
+          <label>Exercise</label>
+          <select class="exercise-select"></select>
+        </div>
+        <div><label>Reps</label><input class="reps-input" type="number" value="${item.reps}" style="width: 80px;"></div>
+        <div><label>RPE</label><input class="rpe-input" type="number" step="0.5" value="${item.rpe}" style="width: 80px;"></div>
+        <div><label>Sets</label><input class="sets-input" type="number" value="${item.sets}" style="width: 80px;"></div>
+        <div><label>&nbsp;</label><button class="delete-btn">Delete</button></div>
+      `;
+      
+      // Populate exercise dropdown
+      const exerciseSelect = row.querySelector('.exercise-select');
+      state.exercises.forEach(ex => {
+        const option = document.createElement('option');
+        option.value = ex.id;
+        option.textContent = ex.name;
+        if (ex.id === item.exId) option.selected = true;
+        exerciseSelect.appendChild(option);
+      });
+      
+      // Add event listeners
+      exerciseSelect.onchange = () => {
+        item.exId = Number(exerciseSelect.value);
+        persist();
+      };
+      
+      row.querySelector('.reps-input').onchange = (e) => {
+        item.reps = Number(e.target.value);
+        persist();
+      };
+      
+      row.querySelector('.rpe-input').onchange = (e) => {
+        item.rpe = Number(e.target.value);
+        persist();
+      };
+      
+      row.querySelector('.sets-input').onchange = (e) => {
+        item.sets = Number(e.target.value);
+        persist();
+      };
+      
+      row.querySelector('.delete-btn').onclick = () => {
+        templateItems.splice(index, 1);
+        persist();
+        renderTemplates();
+      };
+      
+      container.appendChild(row);
     });
   });
-  alert('RIR Table saved!');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  document.querySelector('[data-page="rir"]').addEventListener('click', renderRIRTable);
-});
-
-
-/* ---------- Init ---------- */
-renderTabs();
-renderToday(); renderTemplates(); renderExercises(); renderHistory(); renderSettings();
-</script>
-<script>
-  document.getElementById('resetBtn').addEventListener('click', () => {
-    if (confirm('Are you sure you want to reset the templates? This action cannot be undone.')) {
-      resetTemplates();
-      alert('Templates have been reset to default.');
-    }
-  });
-
-  function resetTemplates() {
-    state.templates = {
-      'A-Upper': [
-        { exId: 1, reps: 5, rpe: 8.5, sets: 4 },
-        { exId: 3, reps: 6, rpe: 8.0, sets: 3 }
-      ],
-      'A-Lower': [
-        { exId: 2, reps: 5, rpe: 8.5, sets: 4 },
-        { exId: 4, reps: 6, rpe: 8.0, sets: 3 }
-      ],
-      'B-Upper': [
-        { exId: 1, reps: 4, rpe: 8.0, sets: 3 },
-        { exId: 3, reps: 5, rpe: 8.0, sets: 3 }
-      ],
-      'B-Lower': [
-        { exId: 2, reps: 4, rpe: 8.0, sets: 3 },
-        { exId: 4, reps: 5, rpe: 8.0, sets: 3 }
-      ]
+function renderExercises() {
+  const tbody = $('#exTable tbody');
+  tbody.innerHTML = '';
+  
+  state.exercises.forEach(exercise => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${exercise.name}</td>
+      <td>${exercise.cat}</td>
+      <td><input type="number" step="0.5" value="${exercise.tm}" style="width: 100px;"></td>
+      <td><button class="delete-btn">Delete</button></td>
+    `;
+    
+    // Add event listeners
+    row.querySelector('input').onchange = (e) => {
+      exercise.tm = Number(e.target.value);
+      persist();
     };
+    
+    row.querySelector('.delete-btn').onclick = () => {
+      if (confirm('Delete exercise and remove from templates?')) {
+        // Remove from templates
+        Object.keys(state.templates).forEach(templateKey => {
+          state.templates[templateKey] = state.templates[templateKey].filter(item => item.exId !== exercise.id);
+        });
+        
+        // Remove exercise
+        state.exercises = state.exercises.filter(ex => ex.id !== exercise.id);
+        
+        persist();
+        renderExercises();
+        renderTemplates();
+        renderToday();
+      }
+    };
+    
+    tbody.appendChild(row);
+  });
+}
+
+function renderHistory() {
+  const tbody = $('#logTable tbody');
+  tbody.innerHTML = '';
+  
+  // Show last 50 sets
+  state.log.slice(0, 50).forEach(set => {
+    const exercise = state.exercises.find(ex => ex.id === set.exId);
+    const row = document.createElement('tr');
+    const date = new Date(set.date);
+    
+    row.innerHTML = `
+      <td>${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</td>
+      <td>${exercise?.name || '?'}</td>
+      <td>${fmt(set.weight)}×${set.reps}@${set.rpe}</td>
+      <td>${set.e1rm.toFixed(1)}</td>
+    `;
+    
+    tbody.appendChild(row);
+  });
+}
+
+function renderSettings() {
+  $('#unit').value = state.unit;
+  $('#minJump').value = state.settings.minJump;
+  $('#upUpperStrong').value = state.settings.upUpperStrong;
+  $('#upUpperSmall').value = state.settings.upUpperSmall;
+  $('#downUpper').value = state.settings.downUpper;
+  $('#upLowerStrong').value = state.settings.upLowerStrong;
+  $('#upLowerSmall').value = state.settings.upLowerSmall;
+  $('#downLower').value = state.settings.downLower;
+}
+
+/* ---------- Action Functions ---------- */
+function addTemplateRow(templateKey) {
+  if (!state.templates[templateKey]) {
+    state.templates[templateKey] = [];
+  }
+  
+  state.templates[templateKey].push({
+    exId: state.exercises[0]?.id || 0,
+    reps: 5,
+    rpe: 8.5,
+    sets: 3
+  });
+  
+  persist();
+  renderTemplates();
+}
+
+function addExercise() {
+  const name = $('#exName').value.trim();
+  if (!name) return;
+  
+  const category = $('#exCat').value;
+  const trainingMax = Number($('#exTM').value) || 0;
+  
+  state.exercises.push({
+    id: state.nextId++,
+    name: name,
+    cat: category,
+    tm: trainingMax
+  });
+  
+  // Clear form
+  $('#exName').value = '';
+  $('#exTM').value = '';
+  
+  persist();
+  renderExercises();
+  renderTemplates();
+}
+
+function saveSettings() {
+  state.unit = $('#unit').value;
+  state.settings.minJump = Number($('#minJump').value);
+  state.settings.upUpperStrong = Number($('#upUpperStrong').value);
+  state.settings.upUpperSmall = Number($('#upUpperSmall').value);
+  state.settings.downUpper = Number($('#downUpper').value);
+  state.settings.upLowerStrong = Number($('#upLowerStrong').value);
+  state.settings.upLowerSmall = Number($('#upLowerSmall').value);
+  state.settings.downLower = Number($('#downLower').value);
+  
+  persist();
+  alert('Settings saved!');
+}
+
+function closeWeek() {
+  state.exercises.forEach(exercise => {
+    progressTrainingMax(exercise);
+  });
+  
+  persist();
+  alert('Week closed! Training maxes updated.');
+  renderExercises();
+  renderToday();
+}
+
+function resetTemplates() {
+  if (confirm('Are you sure you want to reset all templates? This cannot be undone.')) {
+    state.templates = JSON.parse(JSON.stringify(DEFAULT_STATE.templates));
     persist();
     renderTemplates();
+    alert('Templates reset to default!');
   }
+}
+
+function exportData() {
+  const dataStr = JSON.stringify(state, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `lifttracker-${new Date().toISOString().split('T')[0]}.json`;
+  link.click();
+  
+  URL.revokeObjectURL(url);
+}
+
+async function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  try {
+    const text = await file.text();
+    const importedData = JSON.parse(text);
+    
+    // Validate imported data structure
+    if (importedData && typeof importedData === 'object') {
+      Object.assign(state, importedData);
+      persist();
+      
+      // Re-render all views
+      renderSettings();
+      renderExercises();
+      renderTemplates();
+      renderToday();
+      renderHistory();
+      
+      alert('Data imported successfully!');
+    } else {
+      throw new Error('Invalid file format');
+    }
+  } catch (error) {
+    alert('Error importing file: ' + error.message);
+  }
+  
+  // Clear file input
+  event.target.value = '';
+}
+
+/* ---------- Event Listeners ---------- */
+function setupEventListeners() {
+  // Week and day changes
+  $('#week').onchange = () => {
+    updateDayDropdown();
+    renderToday();
+  };
+  
+  $('#day').onchange = () => {
+    renderToday();
+  };
+  
+  // Unit change
+  $('#unit').onchange = () => {
+    state.unit = $('#unit').value;
+    persist();
+    renderToday();
+  };
+  
+  // Advance day button
+  $('#advanceBtn').onclick = advanceDay;
+  
+  // Close week button
+  $('#closeWeekBtn').onclick = closeWeek;
+  
+  // Reset templates button
+  $('#resetBtn').onclick = resetTemplates;
+  
+  // Export button
+  $('#exportBtn').onclick = exportData;
+  
+  // Import file input
+  $('#importFile').onchange = importData;
+}
+
+/* ---------- Initialization ---------- */
+function initialize() {
+  // Set up event listeners
+  setupEventListeners();
+  
+  // Initialize day dropdown
+  updateDayDropdown();
+  
+  // Set up tab navigation
+  renderTabs();
+  
+  // Initial render
+  renderToday();
+  renderTemplates();
+  renderExercises();
+  renderHistory();
+  renderSettings();
+}
+
+// Start the app when DOM is loaded
+document.addEventListener('DOMContentLoaded', initialize);
 </script>
 </body>
 </html>
