@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Lifting Tracker (6-1 / 6-2)</title>
+<title>Lifting Tracker (A-Upper / A-Lower)</title>
 <style>
   :root { --bg:#0f1115; --card:#171a21; --muted:#8b95a7; --text:#e7ecf3; --accent:#71a8ff; --good:#37d67a; --bad:#ff5f57; }
   *{box-sizing:border-box} body{margin:0;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;background:var(--bg);color:var(--text)}
@@ -37,6 +37,7 @@
     <button class="tab" data-page="exercises">Exercises</button>
     <button class="tab" data-page="history">History</button>
     <button class="tab" data-page="settings">Settings</button>
+    <button class="tab" data-page="rir">RIR Table</button>
   </div>
   <div style="margin-left:auto" class="row">
     <button id="exportBtn">Export</button>
@@ -109,16 +110,27 @@
   <section id="page-templates" hidden>
     <div class="grid grid-2">
       <div class="card">
-        <h3>6-1 Template</h3>
-        <div id="tmpl-6-1"></div>
-        <button onclick="addTemplateRow('6-1')">+ Add Exercise</button>
+        <h3>A-Upper Template</h3>
+        <div id="tmpl-aupper"></div>
+        <button onclick="addTemplateRow('A-Upper')">+ Add Exercise</button>
       </div>
       <div class="card">
-        <h3>6-2 Template</h3>
-        <div id="tmpl-6-2"></div>
-        <button onclick="addTemplateRow('6-2')">+ Add Exercise</button>
+        <h3>A-Lower Template</h3>
+        <div id="tmpl-alower"></div>
+        <button onclick="addTemplateRow('A-Lower')">+ Add Exercise</button>
+      </div>
+      <div class="card">
+        <h3>B-Upper Template</h3>
+        <div id="tmpl-bupper"></div>
+        <button onclick="addTemplateRow('B-Upper')">+ Add Exercise</button>
+      </div>
+      <div class="card">
+        <h3>B-Lower Template</h3>
+        <div id="tmpl-blower"></div>
+        <button onclick="addTemplateRow('B-Lower')">+ Add Exercise</button>
       </div>
     </div>
+    <button id="resetBtn">Reset Templates</button>
   </section>
 
   <!-- EXERCISES -->
@@ -175,6 +187,30 @@
       </div>
     </div>
   </section>
+
+  <!-- RIR TABLE -->
+  <section id="page-rir" hidden>
+    <div class="card">
+      <h3>Edit RIR Table</h3>
+      <table id="rirTable">
+        <thead>
+          <tr>
+            <th>Identifier</th>
+            <th>Week</th>
+            <th>Day</th>
+            <th>Body Part</th>
+            <th>RIR</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Rows will be dynamically populated -->
+        </tbody>
+      </table>
+      <button onclick="addRIRRow()">+ Add Row</button>
+      <button onclick="saveRIRTable()">Save Changes</button>
+    </div>
+  </section>
 </main>
 
 <script>
@@ -191,8 +227,10 @@ const state = JSON.parse(localStorage.getItem(STORE_KEY) || 'null') || {
   ],
   nextId:5,
   templates:{
-    '6-1': [ {exId:1,reps:5,rpe:8.5,sets:4},{exId:3,reps:6,rpe:8.0,sets:3} ],
-    '6-2': [ {exId:2,reps:5,rpe:8.5,sets:4},{exId:4,reps:6,rpe:8.0,sets:3} ]
+    'A-Upper': [ {exId:1,reps:5,rpe:8.5,sets:4},{exId:3,reps:6,rpe:8.0,sets:3} ],
+    'A-Lower': [ {exId:2,reps:5,rpe:8.5,sets:4},{exId:4,reps:6,rpe:8.0,sets:3} ],
+    'B Upper': [ {exId:2,reps:5,rpe:8.5,sets:4},{exId:4,reps:6,rpe:8.0,sets:3} ],
+    'B Lower': [ {exId:2,reps:5,rpe:8.5,sets:4},{exId:4,reps:6,rpe:8.0,sets:3} ]
   },
   log: [] // {date, exId, weight, reps, rpe, e1rm, week, half}
 };
@@ -283,32 +321,43 @@ function renderTabs(){
   });
 }
 
-/* ---------- Today ---------- */
-function renderToday(){
+// Update the logic to query templates correctly based on dropdown selection
+function getTemplateKeyFromDropdown(dayValue) {
+  const [week, part, split] = dayValue.split('-');
+  const splitLabel = split.charAt(0).toUpperCase() + split.slice(1); // Capitalize first letter
+  return `${part}-${splitLabel}`;
+}
+
+// Update renderToday to use the correct template key
+function renderToday() {
   $('#unit').value = state.unit;
   const week = Number($('#week').value || 1);
   const dayValue = $('#day').value;
-  // Parse dayValue: "1-A-upper"
-  const [weekNum, part, split] = dayValue.split('-');
-  const splitLabel = split === 'upper' ? 'Upper' : 'Lower';
-  $('#todayTitle').textContent = `Week ${weekNum} - ${part} ${splitLabel}`;
+  const templateKey = getTemplateKeyFromDropdown(dayValue);
+  $('#todayTitle').textContent = `Week ${week} - ${templateKey.replace('-', ' ')}`;
   const cont = $('#todayList'); cont.innerHTML = '';
-  // Map to template: 6-1 for upper, 6-2 for lower
-  const templateKey = split === 'upper' ? '6-1' : '6-2';
   const items = state.templates[templateKey] || [];
-  if(items.length===0) { cont.innerHTML = '<div class="tiny">No exercises in this template yet.</div>'; return; }
-  for(const it of items){
-    const ex = state.exercises.find(e=>e.id===it.exId); if(!ex) continue;
+  if (items.length === 0) {
+    cont.innerHTML = '<div class="tiny">No exercises in this template yet.</div>';
+    return;
+  }
+  for (const it of items) {
+    const ex = state.exercises.find(e => e.id === it.exId);
+    if (!ex) {
+      console.warn(`Exercise with ID ${it.exId} not found in state.exercises`);
+      continue;
+    }
+    const rir = getRIR(week, templateKey.split('-')[0] === 'A' ? 1 : 2, ex.cat);
     let load = prescribeLoad(ex.tm, it.reps, it.rpe, state.unit, state.settings.minJump);
     let sets = it.sets;
-    [load, sets] = deload(Number(weekNum), load, sets);
+    [load, sets] = deload(week, load, sets);
     const card = document.createElement('div');
-    card.className='card';
+    card.className = 'card';
     card.innerHTML = `
       <div class="row" style="justify-content:space-between;align-items:center">
         <div>
           <div><strong>${ex.name}</strong> <span class="pill">${ex.cat}</span></div>
-          <div class="tiny">TM ${fmt(ex.tm)} ${state.unit} • Expected: <b>${fmt(load)}</b> × ${it.reps} × ${sets} @ RPE ${it.rpe}</div>
+          <div class="tiny">TM ${fmt(ex.tm)} ${state.unit} • Expected: <b>${fmt(load)}</b> × ${it.reps} × ${sets} @ RPE ${it.rpe} • RIR: ${rir ?? 'N/A'}</div>
         </div>
         <div class="row">
           <div><label>Weight</label><input type="number" step="0.5" value="${fmt(load)}" style="width:110px" class="in-weight"></div>
@@ -319,17 +368,17 @@ function renderToday(){
       </div>
       <div class="tiny" style="margin-top:6px" hidden></div>
     `;
-    card.querySelector('.logBtn').onclick = ()=>{
+    card.querySelector('.logBtn').onclick = () => {
       const w = Number(card.querySelector('.in-weight').value);
       const r = Number(card.querySelector('.in-reps').value);
       const rpe = Number(card.querySelector('.in-rpe').value);
-      const E = e1rm(w,r);
-      state.log.unshift({date:new Date().toISOString(),exId:ex.id,weight:w,reps:r,rpe:rpe,e1rm:E,week:Number(weekNum),part,split:splitLabel});
+      const E = e1rm(w, r);
+      state.log.unshift({ date: new Date().toISOString(), exId: ex.id, weight: w, reps: r, rpe: rpe, e1rm: E, week, part: templateKey.split('-')[0], split: templateKey.split('-')[1] });
       persist();
-      const factor = nextSetAdjustment(it.rpe, rpe, r>=it.reps);
-      const next = roundToPlates(w*factor, state.unit, state.settings.minJump);
+      const factor = nextSetAdjustment(it.rpe, rpe, r >= it.reps);
+      const next = roundToPlates(w * factor, state.unit, state.settings.minJump);
       const hint = card.querySelector('.tiny:last-child');
-      hint.hidden=false;
+      hint.hidden = false;
       hint.innerHTML = `Logged. e1RM <b>${E.toFixed(1)}</b>. Suggested next set: <b>${fmt(next)}</b> ${state.unit}.`;
       renderHistory(true);
     };
@@ -339,8 +388,9 @@ function renderToday(){
 
 /* ---------- Templates ---------- */
 function renderTemplates(){
-  ['6-1','6-2'].forEach(code=>{
-    const box = $('#tmpl-'+code); box.innerHTML='';
+  ['A-Upper', 'A-Lower', 'B-Upper', 'B-Lower'].forEach(code=>{
+    const box = document.querySelector(`#tmpl-${code.replace('-', '').toLowerCase()}`);
+    box.innerHTML='';
     const arr = state.templates[code]||[];
     arr.forEach((t,i)=>{
       const ex = state.exercises.find(e=>e.id===t.exId);
@@ -368,6 +418,13 @@ function renderTemplates(){
       row.querySelector('.del').onclick = ()=>{ arr.splice(i,1); persist(); renderTemplates(); };
       box.appendChild(row);
     });
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '+ Add Exercise';
+    addBtn.onclick = () => {
+      arr.push({ exId: state.exercises[0]?.id || 0, reps: 5, rpe: 8.5, sets: 3 });
+      renderTemplates();
+    };
+    box.appendChild(addBtn);
   });
 }
 function addTemplateRow(code){
@@ -388,8 +445,10 @@ function renderExercises(){
     tr.querySelector('input').onchange = e=>{ ex.tm=Number(e.target.value); persist(); };
     tr.querySelector('.rm').onclick = ()=>{ 
       if(confirm('Delete exercise and remove from templates?')){
-        state.templates['6-1'] = (state.templates['6-1']||[]).filter(t=>t.exId!==ex.id);
-        state.templates['6-2'] = (state.templates['6-2']||[]).filter(t=>t.exId!==ex.id);
+        state.templates['A-Upper'] = (state.templates['A-Upper']||[]).filter(t=>t.exId!==ex.id);
+        state.templates['A-Lower'] = (state.templates['A-Lower']||[]).filter(t=>t.exId!==ex.id);
+        state.templates['B-Upper'] = (state.templates['B-Upper']||[]).filter(t=>t.exId!==ex.id);
+        state.templates['B-Lower'] = (state.templates['B-Lower']||[]).filter(t=>t.exId!==ex.id);
         state.exercises = state.exercises.filter(e=>e.id!==ex.id);
         persist(); renderExercises(); renderTemplates(); renderToday();
       }
@@ -504,9 +563,94 @@ $('#closeWeekBtn').onclick = ()=>{
   persist(); alert('Week closed. TMs updated.'); renderExercises(); renderToday();
 };
 
+/* ---------- RIR TABLE ---------- */
+const RIR_TABLE = [
+  { identifier: 'Default', week: 1, day: 1, bodyPart: 'Upper', rir: 2 },
+  { identifier: 'Default', week: 1, day: 2, bodyPart: 'Lower', rir: 2 },
+];
+
+function renderRIRTable() {
+  const tableBody = document.querySelector('#rirTable tbody');
+  tableBody.innerHTML = '';
+  RIR_TABLE.forEach((row, index) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" value="${row.identifier}" /></td>
+      <td><input type="number" value="${row.week}" /></td>
+      <td><input type="number" value="${row.day}" /></td>
+      <td><input type="text" value="${row.bodyPart}" /></td>
+      <td><input type="number" value="${row.rir}" /></td>
+      <td><button onclick="deleteRIRRow(${index})">Delete</button></td>
+    `;
+    tableBody.appendChild(tr);
+  });
+}
+
+function addRIRRow() {
+  RIR_TABLE.push({ identifier: '', week: 1, day: 1, bodyPart: '', rir: 0 });
+  renderRIRTable();
+}
+
+function deleteRIRRow(index) {
+  RIR_TABLE.splice(index, 1);
+  renderRIRTable();
+}
+
+function saveRIRTable() {
+  const rows = document.querySelectorAll('#rirTable tbody tr');
+  RIR_TABLE.length = 0;
+  rows.forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    RIR_TABLE.push({
+      identifier: inputs[0].value,
+      week: Number(inputs[1].value),
+      day: Number(inputs[2].value),
+      bodyPart: inputs[3].value,
+      rir: Number(inputs[4].value),
+    });
+  });
+  alert('RIR Table saved!');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelector('[data-page="rir"]').addEventListener('click', renderRIRTable);
+});
+
+
 /* ---------- Init ---------- */
 renderTabs();
 renderToday(); renderTemplates(); renderExercises(); renderHistory(); renderSettings();
+</script>
+<script>
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if (confirm('Are you sure you want to reset the templates? This action cannot be undone.')) {
+      resetTemplates();
+      alert('Templates have been reset to default.');
+    }
+  });
+
+  function resetTemplates() {
+    state.templates = {
+      'A-Upper': [
+        { exId: 1, reps: 5, rpe: 8.5, sets: 4 },
+        { exId: 3, reps: 6, rpe: 8.0, sets: 3 }
+      ],
+      'A-Lower': [
+        { exId: 2, reps: 5, rpe: 8.5, sets: 4 },
+        { exId: 4, reps: 6, rpe: 8.0, sets: 3 }
+      ],
+      'B-Upper': [
+        { exId: 1, reps: 4, rpe: 8.0, sets: 3 },
+        { exId: 3, reps: 5, rpe: 8.0, sets: 3 }
+      ],
+      'B-Lower': [
+        { exId: 2, reps: 4, rpe: 8.0, sets: 3 },
+        { exId: 4, reps: 5, rpe: 8.0, sets: 3 }
+      ]
+    };
+    persist();
+    renderTemplates();
+  }
 </script>
 </body>
 </html>
