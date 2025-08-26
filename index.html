@@ -112,6 +112,7 @@
     <button class="tab" data-page="exercises">Exercises</button>
     <button class="tab" data-page="history">History</button>
     <button class="tab" data-page="settings">Settings</button>
+    <button class="tab" data-page="rpe-schedule">RPE Schedule</button>
   </div>
   <div style="margin-left: auto;" class="row">
     <button id="exportBtn">Export</button>
@@ -199,6 +200,8 @@
             <option>BACK</option>
             <option>QUADS</option>
             <option>HAMSTRINGS</option>
+            <option>SHOULDERS</option>
+            <option>ARMS</option>
           </select>
         </div>
         <div><label>Training Max</label><input id="exTM" type="number" step="0.5"></div>
@@ -253,6 +256,68 @@
       </div>
     </div>
   </section>
+
+  <!-- RPE SCHEDULE -->
+  <section id="page-rpe-schedule" hidden>
+    <div class="card">
+      <div class="row" style="justify-content: space-between; align-items: center;">
+        <h3>RPE Schedule by Week/Section/Body Part</h3>
+        <button onclick="resetRPESchedule()">Reset to Default</button>
+      </div>
+      <p class="tiny">Customize RPE targets for each body part by week and section (A/B). This overrides template RPE values.</p>
+      
+      <div class="grid grid-2" style="margin-bottom: 20px;">
+        <div class="card">
+          <h4>Quick Presets</h4>
+          <div class="row">
+            <button onclick="applyLinearProgression()">Linear (8→9.5)</button>
+            <button onclick="applyWaveProgression()">Wave (8→9→8.5→9.5)</button>
+            <button onclick="applyBlockProgression()">Block (2wk cycles)</button>
+          </div>
+        </div>
+        <div class="card">
+          <h4>Add New Override</h4>
+          <div class="row">
+            <div><label>Week</label><select id="newWeek"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
+            <div><label>Section</label><select id="newSection"><option>A</option><option>B</option></select></div>
+            <div><label>Body Part</label><select id="newBodyPart"><option>CHEST</option><option>BACK</option><option>QUADS</option><option>HAMSTRINGS</option><option>SHOULDERS</option><option>ARMS</option></select></div>
+            <div><label>RPE</label><input id="newRPE" type="number" step="0.5" min="6" max="10" value="8.0"></div>
+            <div><label>&nbsp;</label><button onclick="addRPEOverride()">Add</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Current RPE Schedule</h4>
+        <div style="overflow-x: auto;">
+          <table id="rpeScheduleTable">
+            <thead>
+              <tr>
+                <th>Body Part</th>
+                <th>W1-A</th><th>W1-B</th>
+                <th>W2-A</th><th>W2-B</th>
+                <th>W3-A</th><th>W3-B</th>
+                <th>W4-A</th><th>W4-B</th>
+                <th>W5-A</th><th>W5-B</th>
+                <th>W6-A</th><th>W6-B</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Individual Overrides</h4>
+        <table id="rpeOverrideTable">
+          <thead>
+            <tr><th>Week</th><th>Section</th><th>Body Part</th><th>RPE</th><th>Actions</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 </main>
 
 <script>
@@ -268,6 +333,9 @@ const RPE_TABLE = {
   8: { 8.0: 0.76, 8.5: 0.78, 9.0: 0.80 },
   10: { 8.0: 0.72, 8.5: 0.74, 9.0: 0.76 }
 };
+
+// Body part categories
+const BODY_PARTS = ['CHEST', 'BACK', 'QUADS', 'HAMSTRINGS', 'SHOULDERS', 'ARMS'];
 
 // Default state
 const DEFAULT_STATE = {
@@ -306,11 +374,30 @@ const DEFAULT_STATE = {
       { exId: 4, reps: 5, rpe: 8.0, sets: 3 }
     ]
   },
+  // RPE Schedule System
+  rpeSchedule: {
+    // Format: "week-section-bodypart": rpe
+    overrides: {},
+    // Default RPE values when no override exists
+    defaults: {
+      'CHEST': 8.5,
+      'BACK': 8.0,
+      'QUADS': 8.5,
+      'HAMSTRINGS': 8.0,
+      'SHOULDERS': 8.0,
+      'ARMS': 8.0
+    }
+  },
   log: []
 };
 
 // Load or initialize state
 let state = JSON.parse(localStorage.getItem(STORE_KEY)) || JSON.parse(JSON.stringify(DEFAULT_STATE));
+
+// Ensure RPE schedule exists in loaded state (for backwards compatibility)
+if (!state.rpeSchedule) {
+  state.rpeSchedule = JSON.parse(JSON.stringify(DEFAULT_STATE.rpeSchedule));
+}
 
 /* ---------- Utility Functions ---------- */
 function persist() {
@@ -327,6 +414,88 @@ function fmt(number) {
 
 function isLowerBody(category) {
   return category === 'QUADS' || category === 'HAMSTRINGS';
+}
+
+/* ---------- RPE Schedule Functions ---------- */
+function getRPEForExercise(week, section, bodyPart) {
+  const key = `${week}-${section}-${bodyPart}`;
+  
+  // Check for specific override first
+  if (state.rpeSchedule.overrides[key] !== undefined) {
+    return state.rpeSchedule.overrides[key];
+  }
+  
+  // Fall back to default for body part
+  return state.rpeSchedule.defaults[bodyPart] || 8.0;
+}
+
+function setRPEOverride(week, section, bodyPart, rpe) {
+  const key = `${week}-${section}-${bodyPart}`;
+  state.rpeSchedule.overrides[key] = rpe;
+  persist();
+}
+
+function removeRPEOverride(week, section, bodyPart) {
+  const key = `${week}-${section}-${bodyPart}`;
+  delete state.rpeSchedule.overrides[key];
+  persist();
+}
+
+function applyLinearProgression() {
+  // Linear progression from week 1 to 6: 8.0 → 9.5
+  state.rpeSchedule.overrides = {};
+  
+  for (let week = 1; week <= 6; week++) {
+    for (const section of ['A', 'B']) {
+      for (const bodyPart of BODY_PARTS) {
+        const rpe = 8.0 + ((week - 1) * 0.3); // Increases by 0.3 each week
+        setRPEOverride(week, section, bodyPart, Math.round(rpe * 2) / 2); // Round to nearest 0.5
+      }
+    }
+  }
+  renderRPESchedule();
+  alert('Applied Linear Progression (8.0 → 9.5)');
+}
+
+function applyWaveProgression() {
+  // Wave progression: 8.0 → 9.0 → 8.5 → 9.5 → 8.0 → 9.0
+  const waves = [8.0, 9.0, 8.5, 9.5, 8.0, 9.0];
+  state.rpeSchedule.overrides = {};
+  
+  for (let week = 1; week <= 6; week++) {
+    for (const section of ['A', 'B']) {
+      for (const bodyPart of BODY_PARTS) {
+        setRPEOverride(week, section, bodyPart, waves[week - 1]);
+      }
+    }
+  }
+  renderRPESchedule();
+  alert('Applied Wave Progression');
+}
+
+function applyBlockProgression() {
+  // Block progression: 2 weeks at each intensity
+  const blocks = [8.0, 8.0, 8.5, 8.5, 9.0, 9.0];
+  state.rpeSchedule.overrides = {};
+  
+  for (let week = 1; week <= 6; week++) {
+    for (const section of ['A', 'B']) {
+      for (const bodyPart of BODY_PARTS) {
+        setRPEOverride(week, section, bodyPart, blocks[week - 1]);
+      }
+    }
+  }
+  renderRPESchedule();
+  alert('Applied Block Progression (2-week blocks)');
+}
+
+function resetRPESchedule() {
+  if (confirm('Reset RPE schedule to defaults? This will remove all custom overrides.')) {
+    state.rpeSchedule = JSON.parse(JSON.stringify(DEFAULT_STATE.rpeSchedule));
+    persist();
+    renderRPESchedule();
+    alert('RPE schedule reset to defaults.');
+  }
 }
 
 /* ---------- Calculation Functions ---------- */
@@ -391,8 +560,21 @@ function progressTrainingMax(exercise) {
     if (set.exId !== exercise.id) continue;
     if (new Date(set.date).getTime() < cutoffDate) continue;
     
-    // Simplified scoring based on RPE (in reality, you'd compare to target)
-    const rpeScore = set.rpe >= 9.5 ? -1 : (set.rpe <= 8.5 ? 1 : 0.5);
+    // Use target RPE if available, otherwise fall back to simple RPE scoring
+    const targetRPE = set.targetRpe || 8.5;
+    const rpeDelta = set.rpe - targetRPE;
+    
+    let rpeScore = 0;
+    if (rpeDelta >= 1.0) {
+      rpeScore = -1; // Much harder than target
+    } else if (rpeDelta >= 0.5) {
+      rpeScore = 0.5; // Slightly harder than target
+    } else if (rpeDelta <= -1.0) {
+      rpeScore = 1; // Much easier than target
+    } else {
+      rpeScore = 1; // Hit target
+    }
+    
     score += rpeScore;
     bestWeeklyE1RM = Math.max(bestWeeklyE1RM, set.e1rm);
   }
@@ -493,6 +675,7 @@ function renderTabs() {
         case 'exercises': renderExercises(); break;
         case 'history': renderHistory(); break;
         case 'settings': renderSettings(); break;
+        case 'rpe-schedule': renderRPESchedule(); break;
       }
     };
   });
@@ -504,6 +687,7 @@ function renderToday() {
   const week = Number($('#week').value) || 1;
   const dayValue = $('#day').value;
   const templateKey = getTemplateKeyFromDayValue(dayValue);
+  const section = templateKey.split('-')[0]; // 'A' or 'B'
   
   $('#todayTitle').textContent = `Week ${week} - ${templateKey.replace('-', ' ')}`;
   
@@ -521,7 +705,10 @@ function renderToday() {
     const exercise = state.exercises.find(ex => ex.id === item.exId);
     if (!exercise) return;
     
-    let prescribedLoad = prescribeLoad(exercise.tm, item.reps, item.rpe, state.unit, state.settings.minJump);
+    // Get RPE from schedule (overrides template RPE)
+    const scheduledRPE = getRPEForExercise(week, section, exercise.cat);
+    
+    let prescribedLoad = prescribeLoad(exercise.tm, item.reps, scheduledRPE, state.unit, state.settings.minJump);
     let prescribedSets = item.sets;
     
     // Apply deload if week 6
@@ -533,12 +720,12 @@ function renderToday() {
       <div class="row" style="justify-content: space-between; align-items: center;">
         <div>
           <div><strong>${exercise.name}</strong> <span class="pill">${exercise.cat}</span></div>
-          <div class="tiny">TM ${fmt(exercise.tm)} ${state.unit} • Expected: <b>${fmt(prescribedLoad)}</b> × ${item.reps} × ${prescribedSets} @ RPE ${item.rpe}</div>
+          <div class="tiny">TM ${fmt(exercise.tm)} ${state.unit} • Expected: <b>${fmt(prescribedLoad)}</b> × ${item.reps} × ${prescribedSets} @ RPE ${scheduledRPE}${scheduledRPE !== item.rpe ? ` <span class="good">(overridden from ${item.rpe})</span>` : ''}</div>
         </div>
         <div class="row">
           <div><label>Weight</label><input type="number" step="0.5" value="${fmt(prescribedLoad)}" style="width: 110px;" class="weight-input"></div>
           <div><label>Reps</label><input type="number" value="${item.reps}" style="width: 80px;" class="reps-input"></div>
-          <div><label>RPE</label><input type="number" step="0.5" value="${item.rpe}" style="width: 80px;" class="rpe-input"></div>
+          <div><label>RPE</label><input type="number" step="0.5" value="${scheduledRPE}" style="width: 80px;" class="rpe-input"></div>
           <div><label>&nbsp;</label><button class="log-btn">Add Set</button></div>
         </div>
       </div>
@@ -564,13 +751,14 @@ function renderToday() {
         rpe: rpe,
         e1rm: e1rm,
         week: week,
-        day: templateKey
+        day: templateKey,
+        targetRpe: scheduledRPE // Store target for progression analysis
       });
       
       persist();
       
-      // Calculate next set suggestion
-      const adjustmentFactor = getNextSetAdjustment(item.rpe, rpe, reps, item.reps);
+      // Calculate next set suggestion using scheduled RPE as target
+      const adjustmentFactor = getNextSetAdjustment(scheduledRPE, rpe, reps, item.reps);
       const nextWeight = roundToPlates(weight * adjustmentFactor, state.unit, state.settings.minJump);
       
       // Show feedback
@@ -731,6 +919,82 @@ function renderSettings() {
   $('#downLower').value = state.settings.downLower;
 }
 
+function renderRPESchedule() {
+  renderRPEScheduleTable();
+  renderRPEOverrideTable();
+}
+
+function renderRPEScheduleTable() {
+  const tbody = $('#rpeScheduleTable tbody');
+  tbody.innerHTML = '';
+  
+  BODY_PARTS.forEach(bodyPart => {
+    const row = document.createElement('tr');
+    let html = `<td><strong>${bodyPart}</strong></td>`;
+    
+    for (let week = 1; week <= 6; week++) {
+      for (const section of ['A', 'B']) {
+        const rpe = getRPEForExercise(week, section, bodyPart);
+        const isOverride = state.rpeSchedule.overrides[`${week}-${section}-${bodyPart}`] !== undefined;
+        html += `<td class="${isOverride ? 'good' : ''}" style="text-align: center;">
+          <input type="number" step="0.5" min="6" max="10" value="${rpe}" 
+                 style="width: 60px; text-align: center; ${isOverride ? 'font-weight: bold;' : ''}"
+                 onchange="updateRPEFromTable(${week}, '${section}', '${bodyPart}', this.value)">
+        </td>`;
+      }
+    }
+    
+    row.innerHTML = html;
+    tbody.appendChild(row);
+  });
+}
+
+function renderRPEOverrideTable() {
+  const tbody = $('#rpeOverrideTable tbody');
+  tbody.innerHTML = '';
+  
+  const overrides = Object.entries(state.rpeSchedule.overrides).sort();
+  
+  if (overrides.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="tiny" style="text-align: center;">No custom overrides set. Using default RPE values.</td></tr>';
+    return;
+  }
+  
+  overrides.forEach(([key, rpe]) => {
+    const [week, section, bodyPart] = key.split('-');
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${week}</td>
+      <td>${section}</td>
+      <td>${bodyPart}</td>
+      <td>${rpe}</td>
+      <td><button onclick="removeRPEOverride('${week}', '${section}', '${bodyPart}'); renderRPESchedule();">Remove</button></td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function updateRPEFromTable(week, section, bodyPart, value) {
+  const rpe = Number(value);
+  const defaultRPE = state.rpeSchedule.defaults[bodyPart] || 8.0;
+  
+  if (rpe === defaultRPE) {
+    // Remove override if setting back to default
+    removeRPEOverride(week, section, bodyPart);
+  } else {
+    // Set override
+    setRPEOverride(week, section, bodyPart, rpe);
+  }
+  
+  // Re-render to update styling
+  renderRPESchedule();
+  
+  // Update today view if it's currently showing
+  if (!$('#page-today').hidden) {
+    renderToday();
+  }
+}
+
 /* ---------- Action Functions ---------- */
 function addTemplateRow(templateKey) {
   if (!state.templates[templateKey]) {
@@ -769,6 +1033,24 @@ function addExercise() {
   persist();
   renderExercises();
   renderTemplates();
+}
+
+function addRPEOverride() {
+  const week = $('#newWeek').value;
+  const section = $('#newSection').value;
+  const bodyPart = $('#newBodyPart').value;
+  const rpe = Number($('#newRPE').value);
+  
+  if (!week || !section || !bodyPart || !rpe) {
+    alert('Please fill in all fields');
+    return;
+  }
+  
+  setRPEOverride(week, section, bodyPart, rpe);
+  renderRPESchedule();
+  
+  // Clear form
+  $('#newRPE').value = '8.0';
 }
 
 function saveSettings() {
@@ -837,6 +1119,7 @@ async function importData(event) {
       renderTemplates();
       renderToday();
       renderHistory();
+      renderRPESchedule();
       
       alert('Data imported successfully!');
     } else {
@@ -902,6 +1185,7 @@ function initialize() {
   renderExercises();
   renderHistory();
   renderSettings();
+  renderRPESchedule();
 }
 
 // Start the app when DOM is loaded
