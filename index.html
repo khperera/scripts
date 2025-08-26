@@ -54,11 +54,12 @@
       </div>
       <div class="card">
         <label>Day</label>
-        <select id="half">
-          <option value="6-1">6-1 (Upper/Lower A)</option>
-          <option value="6-2">6-2 (Upper/Lower B)</option>
-        </select>
+    <select id="day"></select>
       </div>
+        <div class="card">
+          <label>&nbsp;</label>
+          <button id="advanceBtn">Advance Week/Day</button>
+        </div>
       <div class="card">
         <label>Unit</label>
         <select id="unit">
@@ -71,6 +72,27 @@
         <span class="pill">-12.5% load, -1 set</span>
       </div>
     </div>
+      <script>
+      function updateDayDropdown() {
+        const week = Number(document.getElementById('week').value || 1);
+        const daySel = document.getElementById('day');
+        daySel.innerHTML = '';
+        const parts = ['A', 'B'];
+        const splits = ['Upper', 'Lower'];
+        for (const part of parts) {
+          for (const split of splits) {
+            const value = `${week}-${part}-${split.toLowerCase()}`;
+            const label = `Week ${week} - ${part} ${split}`;
+            const opt = document.createElement('option');
+            opt.value = value;
+            opt.textContent = label;
+            daySel.appendChild(opt);
+          }
+        }
+      }
+      // Initialize dropdown on load
+      document.addEventListener('DOMContentLoaded', updateDayDropdown);
+      </script>
     <div class="card" style="margin-top:12px">
       <div class="row" style="align-items:center;justify-content:space-between">
         <div>
@@ -186,7 +208,7 @@ const RPE = { // %1RM
  10:{8.0:.72,8.5:.74,9.0:.76}
 };
 const isLower = cat => (cat==='QUADS'||cat==='HAMSTRINGS');
-const e1rm = (w,r) => w*(1 + r/30);
+const e1rm = (w, r) => r <= 7 ? w * (1 + 0.0333 * r) : w * Math.pow(r, 0.1);
 function roundToPlates(target, unit, minJump){
   const jump = minJump ?? (unit==='lb'?2.5:1.25);
   const total = jump*2;
@@ -265,16 +287,21 @@ function renderTabs(){
 function renderToday(){
   $('#unit').value = state.unit;
   const week = Number($('#week').value || 1);
-  const half = $('#half').value;
-  $('#todayTitle').textContent = `Week ${week}, ${half}`;
+  const dayValue = $('#day').value;
+  // Parse dayValue: "1-A-upper"
+  const [weekNum, part, split] = dayValue.split('-');
+  const splitLabel = split === 'upper' ? 'Upper' : 'Lower';
+  $('#todayTitle').textContent = `Week ${weekNum} - ${part} ${splitLabel}`;
   const cont = $('#todayList'); cont.innerHTML = '';
-  const items = state.templates[half] || [];
+  // Map to template: 6-1 for upper, 6-2 for lower
+  const templateKey = split === 'upper' ? '6-1' : '6-2';
+  const items = state.templates[templateKey] || [];
   if(items.length===0) { cont.innerHTML = '<div class="tiny">No exercises in this template yet.</div>'; return; }
   for(const it of items){
     const ex = state.exercises.find(e=>e.id===it.exId); if(!ex) continue;
     let load = prescribeLoad(ex.tm, it.reps, it.rpe, state.unit, state.settings.minJump);
     let sets = it.sets;
-    [load, sets] = deload(week, load, sets);
+    [load, sets] = deload(Number(weekNum), load, sets);
     const card = document.createElement('div');
     card.className='card';
     card.innerHTML = `
@@ -297,7 +324,7 @@ function renderToday(){
       const r = Number(card.querySelector('.in-reps').value);
       const rpe = Number(card.querySelector('.in-rpe').value);
       const E = e1rm(w,r);
-      state.log.unshift({date:new Date().toISOString(),exId:ex.id,weight:w,reps:r,rpe:rpe,e1rm:E,week,half});
+      state.log.unshift({date:new Date().toISOString(),exId:ex.id,weight:w,reps:r,rpe:rpe,e1rm:E,week:Number(weekNum),part,split:splitLabel});
       persist();
       const factor = nextSetAdjustment(it.rpe, rpe, r>=it.reps);
       const next = roundToPlates(w*factor, state.unit, state.settings.minJump);
@@ -416,8 +443,48 @@ function saveSettings(){
   persist(); alert('Saved.');
 }
 $('#unit').onchange = ()=>{ state.unit=$('#unit').value; persist(); renderToday(); };
-$('#week').onchange = renderToday;
-$('#half').onchange = renderToday;
+$('#week').onchange = function() {
+  updateDayDropdown();
+  renderToday();
+};
+$('#day').onchange = renderToday;
+
+// Advance Week/Day button logic for new dropdown
+function getDayOptions(week) {
+  const parts = ['A', 'B'];
+  const splits = ['upper', 'lower'];
+  const opts = [];
+  for (const part of parts) {
+    for (const split of splits) {
+      opts.push({week, part, split});
+    }
+  }
+  return opts;
+}
+
+function getCurrentAdvanceIndex() {
+  const week = Number($('#week').value);
+  const dayValue = $('#day').value;
+  const opts = getDayOptions(week);
+  return opts.findIndex(o => `${o.week}-${o.part}-${o.split}` === dayValue);
+}
+
+$('#advanceBtn').onclick = function() {
+  let week = Number($('#week').value);
+  let opts = getDayOptions(week);
+  let idx = getCurrentAdvanceIndex();
+  if (idx === opts.length - 1) {
+    // If last (B Lower), go to next week and start at A Upper
+    week = week === 6 ? 1 : week + 1;
+    $('#week').value = week;
+    updateDayDropdown();
+    $('#day').value = `${week}-A-upper`;
+  } else {
+    idx = idx + 1;
+    $('#day').value = `${opts[idx].week}-${opts[idx].part}-${opts[idx].split}`;
+  }
+  renderToday();
+};
 
 $('#exportBtn').onclick = ()=>{
   const blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
