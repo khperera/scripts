@@ -113,6 +113,7 @@
     <button class="tab" data-page="history">History</button>
     <button class="tab" data-page="settings">Settings</button>
     <button class="tab" data-page="rpe-schedule">RPE Schedule</button>
+    <button class="tab" data-page="rep-progression">Rep Progression</button>
   </div>
   <div style="margin-left: auto;" class="row">
     <button id="exportBtn">Export</button>
@@ -205,6 +206,8 @@
           </select>
         </div>
         <div><label>Training Max</label><input id="exTM" type="number" step="0.5"></div>
+        <div><label>Min Reps</label><input id="exMinReps" type="number" min="1" max="20" value="3"></div>
+        <div><label>Max Reps</label><input id="exMaxReps" type="number" min="1" max="20" value="10"></div>
         <div><label>&nbsp;</label><button onclick="addExercise()">Add</button></div>
       </div>
     </div>
@@ -212,7 +215,7 @@
       <h3>Exercises</h3>
       <table id="exTable">
         <thead>
-          <tr><th>Name</th><th>Category</th><th>TM</th><th></th></tr>
+          <tr><th>Name</th><th>Category</th><th>TM</th><th>Rep Range</th><th></th></tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -318,6 +321,68 @@
       </div>
     </div>
   </section>
+
+  <!-- REP PROGRESSION -->
+  <section id="page-rep-progression" hidden>
+    <div class="card">
+      <div class="row" style="justify-content: space-between; align-items: center;">
+        <h3>Rep Progression by Week/Section/Body Part</h3>
+        <button onclick="resetRepProgression()">Reset to Default</button>
+      </div>
+      <p class="tiny">Set rep percentages (0.0-1.0) for each body part by week and section. Reps are calculated as: percentage × (maxReps - minReps) + minReps.</p>
+      
+      <div class="grid grid-2" style="margin-bottom: 20px;">
+        <div class="card">
+          <h4>Quick Presets</h4>
+          <div class="row">
+            <button onclick="applyLinearRepProgression()">Linear (1.0→0.0)</button>
+            <button onclick="applyWaveRepProgression()">Wave (high→low→mid)</button>
+            <button onclick="applyBlockRepProgression()">Block (2wk cycles)</button>
+          </div>
+        </div>
+        <div class="card">
+          <h4>Add New Override</h4>
+          <div class="row">
+            <div><label>Week</label><select id="newRepWeek"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
+            <div><label>Section</label><select id="newRepSection"><option>A</option><option>B</option></select></div>
+            <div><label>Body Part</label><select id="newRepBodyPart"><option>CHEST</option><option>BACK</option><option>QUADS</option><option>HAMSTRINGS</option><option>SHOULDERS</option><option>ARMS</option></select></div>
+            <div><label>Percentage</label><input id="newRepPercentage" type="number" step="0.1" min="0" max="1" value="0.5"></div>
+            <div><label>&nbsp;</label><button onclick="addRepPercentageOverride()">Add</button></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Current Rep Progression Schedule</h4>
+        <div style="overflow-x: auto;">
+          <table id="repProgressionTable">
+            <thead>
+              <tr>
+                <th>Body Part</th>
+                <th>W1-A</th><th>W1-B</th>
+                <th>W2-A</th><th>W2-B</th>
+                <th>W3-A</th><th>W3-B</th>
+                <th>W4-A</th><th>W4-B</th>
+                <th>W5-A</th><th>W5-B</th>
+                <th>W6-A</th><th>W6-B</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4>Individual Overrides</h4>
+        <table id="repOverrideTable">
+          <thead>
+            <tr><th>Week</th><th>Section</th><th>Body Part</th><th>Percentage</th><th>Actions</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
 </main>
 
 <script>
@@ -388,6 +453,22 @@ const DEFAULT_STATE = {
       'ARMS': 8.0
     }
   },
+  // Rep Progression System
+  repProgression: {
+    // Format: "week-section-bodypart": percentage (0-1)
+    overrides: {},
+    // Default rep percentages when no override exists
+    defaults: {
+      'CHEST': 0.5,
+      'BACK': 0.5,
+      'QUADS': 0.5,
+      'HAMSTRINGS': 0.5,
+      'SHOULDERS': 0.5,
+      'ARMS': 0.5
+    }
+  },
+  // Exercise rep ranges (min-max reps for each exercise)
+  exerciseRepRanges: {},
   log: []
 };
 
@@ -397,6 +478,16 @@ let state = JSON.parse(localStorage.getItem(STORE_KEY)) || JSON.parse(JSON.strin
 // Ensure RPE schedule exists in loaded state (for backwards compatibility)
 if (!state.rpeSchedule) {
   state.rpeSchedule = JSON.parse(JSON.stringify(DEFAULT_STATE.rpeSchedule));
+}
+
+// Ensure rep progression exists in loaded state (for backwards compatibility)
+if (!state.repProgression) {
+  state.repProgression = JSON.parse(JSON.stringify(DEFAULT_STATE.repProgression));
+}
+
+// Ensure exercise rep ranges exist (for backwards compatibility)
+if (!state.exerciseRepRanges) {
+  state.exerciseRepRanges = {};
 }
 
 /* ---------- Utility Functions ---------- */
@@ -414,6 +505,55 @@ function fmt(number) {
 
 function isLowerBody(category) {
   return category === 'QUADS' || category === 'HAMSTRINGS';
+}
+
+/* ---------- Rep Progression Functions ---------- */
+function getRepPercentageForExercise(week, section, bodyPart) {
+  const key = `${week}-${section}-${bodyPart}`;
+  
+  // Check for specific override first
+  if (state.repProgression.overrides[key] !== undefined) {
+    return state.repProgression.overrides[key];
+  }
+  
+  // Fall back to default for body part
+  return state.repProgression.defaults[bodyPart] || 0.5;
+}
+
+function setRepPercentageOverride(week, section, bodyPart, percentage) {
+  const key = `${week}-${section}-${bodyPart}`;
+  state.repProgression.overrides[key] = percentage;
+  persist();
+}
+
+function removeRepPercentageOverride(week, section, bodyPart) {
+  const key = `${week}-${section}-${bodyPart}`;
+  delete state.repProgression.overrides[key];
+  persist();
+}
+
+function getExerciseRepRange(exerciseId) {
+  return state.exerciseRepRanges[exerciseId] || { min: 3, max: 10 };
+}
+
+function setExerciseRepRange(exerciseId, minReps, maxReps) {
+  state.exerciseRepRanges[exerciseId] = { min: minReps, max: maxReps };
+  persist();
+}
+
+function calculateTargetReps(exerciseId, week, section, bodyPart) {
+  const repRange = getExerciseRepRange(exerciseId);
+  const percentage = getRepPercentageForExercise(week, section, bodyPart);
+  return Math.round(percentage * (repRange.max - repRange.min) + repRange.min);
+}
+
+function resetRepProgression() {
+  if (confirm('Reset rep progression to defaults? This will remove all custom overrides.')) {
+    state.repProgression = JSON.parse(JSON.stringify(DEFAULT_STATE.repProgression));
+    persist();
+    renderRepProgression();
+    alert('Rep progression reset to defaults.');
+  }
 }
 
 /* ---------- RPE Schedule Functions ---------- */
@@ -496,6 +636,54 @@ function resetRPESchedule() {
     renderRPESchedule();
     alert('RPE schedule reset to defaults.');
   }
+}
+
+function applyLinearRepProgression() {
+  // Linear progression from week 1 to 6: 1.0 → 0.0 (high reps to low reps)
+  state.repProgression.overrides = {};
+  
+  for (let week = 1; week <= 6; week++) {
+    for (const section of ['A', 'B']) {
+      for (const bodyPart of BODY_PARTS) {
+        const percentage = 1.0 - ((week - 1) * 0.2); // Decreases by 0.2 each week
+        setRepPercentageOverride(week, section, bodyPart, Math.max(0, Math.round(percentage * 10) / 10)); // Round to nearest 0.1
+      }
+    }
+  }
+  renderRepProgression();
+  alert('Applied Linear Rep Progression (1.0 → 0.0)');
+}
+
+function applyWaveRepProgression() {
+  // Wave progression: high → low → mid → lower → high → low
+  const waves = [1.0, 0.2, 0.6, 0.1, 0.8, 0.3];
+  state.repProgression.overrides = {};
+  
+  for (let week = 1; week <= 6; week++) {
+    for (const section of ['A', 'B']) {
+      for (const bodyPart of BODY_PARTS) {
+        setRepPercentageOverride(week, section, bodyPart, waves[week - 1]);
+      }
+    }
+  }
+  renderRepProgression();
+  alert('Applied Wave Rep Progression');
+}
+
+function applyBlockRepProgression() {
+  // Block progression: 2 weeks at each rep range
+  const blocks = [0.8, 0.8, 0.5, 0.5, 0.2, 0.2];
+  state.repProgression.overrides = {};
+  
+  for (let week = 1; week <= 6; week++) {
+    for (const section of ['A', 'B']) {
+      for (const bodyPart of BODY_PARTS) {
+        setRepPercentageOverride(week, section, bodyPart, blocks[week - 1]);
+      }
+    }
+  }
+  renderRepProgression();
+  alert('Applied Block Rep Progression (2-week blocks)');
 }
 
 /* ---------- Calculation Functions ---------- */
@@ -676,6 +864,7 @@ function renderTabs() {
         case 'history': renderHistory(); break;
         case 'settings': renderSettings(); break;
         case 'rpe-schedule': renderRPESchedule(); break;
+        case 'rep-progression': renderRepProgression(); break;
       }
     };
   });
@@ -708,7 +897,10 @@ function renderToday() {
     // Get RPE from schedule (overrides template RPE)
     const scheduledRPE = getRPEForExercise(week, section, exercise.cat);
     
-    let prescribedLoad = prescribeLoad(exercise.tm, item.reps, scheduledRPE, state.unit, state.settings.minJump);
+    // Get target reps from rep progression
+    const targetReps = calculateTargetReps(exercise.id, week, section, exercise.cat);
+    
+    let prescribedLoad = prescribeLoad(exercise.tm, targetReps, scheduledRPE, state.unit, state.settings.minJump);
     let prescribedSets = item.sets;
     
     // Apply deload if week 6
@@ -720,11 +912,11 @@ function renderToday() {
       <div class="row" style="justify-content: space-between; align-items: center;">
         <div>
           <div><strong>${exercise.name}</strong> <span class="pill">${exercise.cat}</span></div>
-          <div class="tiny">TM ${fmt(exercise.tm)} ${state.unit} • Expected: <b>${fmt(prescribedLoad)}</b> × ${item.reps} × ${prescribedSets} @ RPE ${scheduledRPE}${scheduledRPE !== item.rpe ? ` <span class="good">(overridden from ${item.rpe})</span>` : ''}</div>
+          <div class="tiny">TM ${fmt(exercise.tm)} ${state.unit} • Expected: <b>${fmt(prescribedLoad)}</b> × ${targetReps} × ${prescribedSets} @ RPE ${scheduledRPE}${scheduledRPE !== item.rpe ? ` <span class="good">(RPE overridden from ${item.rpe})</span>` : ''}${targetReps !== item.reps ? ` <span class="good">(Reps overridden from ${item.reps})</span>` : ''}</div>
         </div>
         <div class="row">
           <div><label>Weight</label><input type="number" step="0.5" value="${fmt(prescribedLoad)}" style="width: 110px;" class="weight-input"></div>
-          <div><label>Reps</label><input type="number" value="${item.reps}" style="width: 80px;" class="reps-input"></div>
+          <div><label>Reps</label><input type="number" value="${targetReps}" style="width: 80px;" class="reps-input"></div>
           <div><label>RPE</label><input type="number" step="0.5" value="${scheduledRPE}" style="width: 80px;" class="rpe-input"></div>
           <div><label>&nbsp;</label><button class="log-btn">Add Set</button></div>
         </div>
@@ -758,7 +950,7 @@ function renderToday() {
       persist();
       
       // Calculate next set suggestion using scheduled RPE as target
-      const adjustmentFactor = getNextSetAdjustment(scheduledRPE, rpe, reps, item.reps);
+      const adjustmentFactor = getNextSetAdjustment(scheduledRPE, rpe, reps, targetReps);
       const nextWeight = roundToPlates(weight * adjustmentFactor, state.unit, state.settings.minJump);
       
       // Show feedback
@@ -853,10 +1045,12 @@ function renderExercises() {
   
   state.exercises.forEach(exercise => {
     const row = document.createElement('tr');
+    const repRange = getExerciseRepRange(exercise.id);
     row.innerHTML = `
       <td>${exercise.name}</td>
       <td>${exercise.cat}</td>
       <td><input type="number" step="0.5" value="${exercise.tm}" style="width: 100px;"></td>
+      <td>${repRange.min}-${repRange.max} reps</td>
       <td><button class="delete-btn">Delete</button></td>
     `;
     
@@ -873,8 +1067,9 @@ function renderExercises() {
           state.templates[templateKey] = state.templates[templateKey].filter(item => item.exId !== exercise.id);
         });
         
-        // Remove exercise
+        // Remove exercise and rep ranges
         state.exercises = state.exercises.filter(ex => ex.id !== exercise.id);
+        delete state.exerciseRepRanges[exercise.id];
         
         persist();
         renderExercises();
@@ -917,6 +1112,82 @@ function renderSettings() {
   $('#upLowerStrong').value = state.settings.upLowerStrong;
   $('#upLowerSmall').value = state.settings.upLowerSmall;
   $('#downLower').value = state.settings.downLower;
+}
+
+function renderRepProgression() {
+  renderRepProgressionTable();
+  renderRepOverrideTable();
+}
+
+function renderRepProgressionTable() {
+  const tbody = $('#repProgressionTable tbody');
+  tbody.innerHTML = '';
+  
+  BODY_PARTS.forEach(bodyPart => {
+    const row = document.createElement('tr');
+    let html = `<td><strong>${bodyPart}</strong></td>`;
+    
+    for (let week = 1; week <= 6; week++) {
+      for (const section of ['A', 'B']) {
+        const percentage = getRepPercentageForExercise(week, section, bodyPart);
+        const isOverride = state.repProgression.overrides[`${week}-${section}-${bodyPart}`] !== undefined;
+        html += `<td class="${isOverride ? 'good' : ''}" style="text-align: center;">
+          <input type="number" step="0.1" min="0" max="1" value="${percentage}" 
+                 style="width: 60px; text-align: center; ${isOverride ? 'font-weight: bold;' : ''}"
+                 onchange="updateRepPercentageFromTable(${week}, '${section}', '${bodyPart}', this.value)">
+        </td>`;
+      }
+    }
+    
+    row.innerHTML = html;
+    tbody.appendChild(row);
+  });
+}
+
+function renderRepOverrideTable() {
+  const tbody = $('#repOverrideTable tbody');
+  tbody.innerHTML = '';
+  
+  const overrides = Object.entries(state.repProgression.overrides).sort();
+  
+  if (overrides.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="tiny" style="text-align: center;">No custom overrides set. Using default rep percentages.</td></tr>';
+    return;
+  }
+  
+  overrides.forEach(([key, percentage]) => {
+    const [week, section, bodyPart] = key.split('-');
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${week}</td>
+      <td>${section}</td>
+      <td>${bodyPart}</td>
+      <td>${percentage}</td>
+      <td><button onclick="removeRepPercentageOverride('${week}', '${section}', '${bodyPart}'); renderRepProgression();">Remove</button></td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function updateRepPercentageFromTable(week, section, bodyPart, value) {
+  const percentage = Number(value);
+  const defaultPercentage = state.repProgression.defaults[bodyPart] || 0.5;
+  
+  if (percentage === defaultPercentage) {
+    // Remove override if setting back to default
+    removeRepPercentageOverride(week, section, bodyPart);
+  } else {
+    // Set override
+    setRepPercentageOverride(week, section, bodyPart, percentage);
+  }
+  
+  // Re-render to update styling
+  renderRepProgression();
+  
+  // Update today view if it's currently showing
+  if (!$('#page-today').hidden) {
+    renderToday();
+  }
 }
 
 function renderRPESchedule() {
@@ -1018,17 +1289,31 @@ function addExercise() {
   
   const category = $('#exCat').value;
   const trainingMax = Number($('#exTM').value) || 0;
+  const minReps = Number($('#exMinReps').value) || 3;
+  const maxReps = Number($('#exMaxReps').value) || 10;
+  
+  if (minReps >= maxReps) {
+    alert('Min reps must be less than max reps');
+    return;
+  }
+  
+  const exerciseId = state.nextId++;
   
   state.exercises.push({
-    id: state.nextId++,
+    id: exerciseId,
     name: name,
     cat: category,
     tm: trainingMax
   });
   
+  // Set rep range for this exercise
+  setExerciseRepRange(exerciseId, minReps, maxReps);
+  
   // Clear form
   $('#exName').value = '';
   $('#exTM').value = '';
+  $('#exMinReps').value = '3';
+  $('#exMaxReps').value = '10';
   
   persist();
   renderExercises();
@@ -1051,6 +1336,29 @@ function addRPEOverride() {
   
   // Clear form
   $('#newRPE').value = '8.0';
+}
+
+function addRepPercentageOverride() {
+  const week = $('#newRepWeek').value;
+  const section = $('#newRepSection').value;
+  const bodyPart = $('#newRepBodyPart').value;
+  const percentage = Number($('#newRepPercentage').value);
+  
+  if (!week || !section || !bodyPart || isNaN(percentage)) {
+    alert('Please fill in all fields');
+    return;
+  }
+  
+  if (percentage < 0 || percentage > 1) {
+    alert('Percentage must be between 0.0 and 1.0');
+    return;
+  }
+  
+  setRepPercentageOverride(week, section, bodyPart, percentage);
+  renderRepProgression();
+  
+  // Clear form
+  $('#newRepPercentage').value = '0.5';
 }
 
 function saveSettings() {
@@ -1120,6 +1428,7 @@ async function importData(event) {
       renderToday();
       renderHistory();
       renderRPESchedule();
+      renderRepProgression();
       
       alert('Data imported successfully!');
     } else {
@@ -1186,6 +1495,7 @@ function initialize() {
   renderHistory();
   renderSettings();
   renderRPESchedule();
+  renderRepProgression();
 }
 
 // Start the app when DOM is loaded
