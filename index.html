@@ -735,11 +735,13 @@ function applRandomRepProgression() {
 
 
 /* ---------- Calculation Functions ---------- */
-function calculateE1RM(weight, reps) {
-  if (reps <= 7) {
-    return weight * (1 + 0.0333 * reps);
+function calculateE1RM(weight, reps, rpe) {
+  var repadjust = Math.Min(Math.max(0,10-rpe),10)
+  var actualreps = repadjust +reps
+  if (actualreps <= 7) {
+    return weight * (1 + 0.0333 * actualreps);
   }
-  return weight * Math.pow(reps, 0.1);
+  return weight * Math.pow(actualreps, 0.1);
 }
 
 function roundToPlates(target, unit, minJump) {
@@ -980,7 +982,7 @@ function renderToday() {
       
       if (!weight || !reps || !rpe) return;
       
-      const e1rm = calculateE1RM(weight, reps);
+      const e1rm = calculateE1RM(weight, reps, rpe);
       
       // Log the set
       state.log.unshift({
