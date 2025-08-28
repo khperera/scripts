@@ -276,6 +276,7 @@
             <button onclick="applyLinearProgression()">Linear (8→9.5)</button>
             <button onclick="applyWaveProgression()">Wave (8→9→8.5→9.5)</button>
             <button onclick="applyBlockProgression()">Block (2wk cycles)</button>
+            <button onclick="applyRandomProgression()">Random (8.0–10.0)</button>
           </div>
         </div>
         <div class="card">
@@ -611,6 +612,27 @@ function applyWaveProgression() {
   }
   renderRPESchedule();
   alert('Applied Wave Progression');
+}
+
+
+function applyRandomProgression() {
+  // Wave progression: 8.0 → 9.0 → 8.5 → 9.5 → 8.0 → 9.0
+  const waves = [8.0, 9.0, 8.5, 9.5, 8.0, 9.0];
+  state.rpeSchedule.overrides = {};
+  
+  for (let week = 1; week <= 6; week++) {
+    for (const section of ['A', 'B']) {
+      for (const bodyPart of BODY_PARTS) {
+        const rpe = Math.round((Math.random() * 2 + 8) * 2) / 2;
+        if (week === 6) {
+          rpe = 5; // or rep = 5; if rep is already declared
+        }     
+        setRPEOverride(week, section, bodyPart, rpe);
+      }
+    }
+  }
+  renderRPESchedule();
+  alert('Applied Random Progression');
 }
 
 function applyBlockProgression() {
