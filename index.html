@@ -339,6 +339,9 @@
             <button onclick="applyLinearRepProgression()">Linear (1.0→0.0)</button>
             <button onclick="applyWaveRepProgression()">Wave (high→low→mid)</button>
             <button onclick="applyBlockRepProgression()">Block (2wk cycles)</button>
+            <button onclick="applRandomRepProgression()">Rep (random cycles)</button>
+
+            
           </div>
         </div>
         <div class="card">
@@ -707,6 +710,29 @@ function applyBlockRepProgression() {
   renderRepProgression();
   alert('Applied Block Rep Progression (2-week blocks)');
 }
+
+
+function applRandomRepProgression() {
+  // Block progression: 2 weeks at each rep range
+  const blocks = [0.8, 0.8, 0.5, 0.5, 0.2, 0.2];
+  state.repProgression.overrides = {};
+  
+  for (let week = 1; week <= 6; week++) {
+    for (const section of ['A', 'B']) {
+      for (const bodyPart of BODY_PARTS) {
+        const rep = Math.random();
+
+
+        setRepPercentageOverride(week, section, bodyPart, rep);
+      }
+    }
+  }
+  renderRepProgression();
+  alert('Applied Block Rep Progression (2-week blocks)');
+}
+
+
+
 
 /* ---------- Calculation Functions ---------- */
 function calculateE1RM(weight, reps) {
