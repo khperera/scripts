@@ -1,0 +1,440 @@
+{
+  "unit": "lb",
+  "settings": {
+    "upUpperStrong": 1.5,
+    "upUpperSmall": 0.5,
+    "downUpper": 2.5,
+    "upLowerStrong": 1.5,
+    "upLowerSmall": 1,
+    "downLower": 2.5,
+    "minJump": 2.5
+  },
+  "exercises": [
+    {
+      "id": 5,
+      "name": "RDL",
+      "cat": "HAMSTRINGS",
+      "tm": 440
+    },
+    {
+      "id": 6,
+      "name": "Squat",
+      "cat": "QUADS",
+      "tm": 405
+    },
+    {
+      "id": 7,
+      "name": "Tricep Pushdown",
+      "cat": "ARMS",
+      "tm": 125
+    },
+    {
+      "id": 8,
+      "name": "Pendulum Squat",
+      "cat": "QUADS",
+      "tm": 157
+    },
+    {
+      "id": 9,
+      "name": "Lateral Raise Machine",
+      "cat": "SHOULDERS",
+      "tm": 180
+    },
+    {
+      "id": 10,
+      "name": "Nautilus Leg Curl",
+      "cat": "HAMSTRINGS",
+      "tm": 125
+    },
+    {
+      "id": 11,
+      "name": "Arsenal Leg Press",
+      "cat": "QUADS",
+      "tm": 680
+    },
+    {
+      "id": 12,
+      "name": "Bench Press",
+      "cat": "CHEST",
+      "tm": 315
+    },
+    {
+      "id": 13,
+      "name": "Rogers Row",
+      "cat": "BACK",
+      "tm": 495
+    },
+    {
+      "id": 14,
+      "name": "Calf Press Arsenal",
+      "cat": "QUADS",
+      "tm": 594
+    },
+    {
+      "id": 15,
+      "name": "Pullover Machine",
+      "cat": "BACK",
+      "tm": 346
+    },
+    {
+      "id": 16,
+      "name": "Precor Leg Curl Seated",
+      "cat": "HAMSTRINGS",
+      "tm": 348
+    },
+    {
+      "id": 17,
+      "name": "Precore preacher Curl",
+      "cat": "ARMS",
+      "tm": 192.8
+    },
+    {
+      "id": 18,
+      "name": "Precor Leg Press",
+      "cat": "QUADS",
+      "tm": 612
+    },
+    {
+      "id": 19,
+      "name": "Lat Pulldown Machine O2",
+      "cat": "BACK",
+      "tm": 200
+    },
+    {
+      "id": 20,
+      "name": "Incline Chest Press O2",
+      "cat": "CHEST",
+      "tm": 225
+    },
+    {
+      "id": 21,
+      "name": "T Bar Row",
+      "cat": "BACK",
+      "tm": 252
+    },
+    {
+      "id": 22,
+      "name": "Calf Press 02",
+      "cat": "QUADS",
+      "tm": 405
+    },
+    {
+      "id": 23,
+      "name": "Chest Fly O2",
+      "cat": "CHEST",
+      "tm": 220
+    },
+    {
+      "id": 24,
+      "name": "Rear Delt Fly 02",
+      "cat": "BACK",
+      "tm": 266
+    },
+    {
+      "id": 25,
+      "name": "Chest Fly Hardwork",
+      "cat": "CHEST",
+      "tm": 270
+    },
+    {
+      "id": 26,
+      "name": "Delt Fly Hardwork",
+      "cat": "BACK",
+      "tm": 200
+    }
+  ],
+  "nextId": 27,
+  "templates": {
+    "A-Upper": [
+      {
+        "exId": 12,
+        "reps": 9,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 5,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      }
+    ],
+    "A-Lower": [],
+    "B-Upper": [],
+    "B-Lower": []
+  },
+  "log": [
+    {
+      "date": "2025-08-26T00:16:08.081Z",
+      "exId": 3,
+      "weight": 100,
+      "reps": 6,
+      "rpe": 8,
+      "e1rm": 100,
+      "week": 1,
+      "half": "6-1"
+    },
+    {
+      "date": "2025-08-26T00:15:55.493Z",
+      "exId": 1,
+      "weight": 100,
+      "reps": 9,
+      "rpe": 8.5,
+      "e1rm": 100,
+      "week": 1,
+      "half": "6-1"
+    }
+  ],
+  "rpeSchedule": {
+    "overrides": {
+      "1-A-CHEST": 8,
+      "1-A-BACK": 9,
+      "1-A-QUADS": 8.5,
+      "1-A-HAMSTRINGS": 9,
+      "1-A-SHOULDERS": 8,
+      "1-A-ARMS": 8,
+      "1-B-CHEST": 9,
+      "1-B-BACK": 8,
+      "1-B-QUADS": 9,
+      "1-B-HAMSTRINGS": 10,
+      "1-B-SHOULDERS": 9,
+      "1-B-ARMS": 9.5,
+      "2-A-CHEST": 8.5,
+      "2-A-BACK": 9,
+      "2-A-QUADS": 9,
+      "2-A-HAMSTRINGS": 8.5,
+      "2-A-SHOULDERS": 8.5,
+      "2-A-ARMS": 10,
+      "2-B-CHEST": 10,
+      "2-B-BACK": 8,
+      "2-B-QUADS": 8,
+      "2-B-HAMSTRINGS": 8.5,
+      "2-B-SHOULDERS": 9.5,
+      "2-B-ARMS": 8.5,
+      "3-A-CHEST": 8,
+      "3-A-BACK": 9,
+      "3-A-QUADS": 9.5,
+      "3-A-HAMSTRINGS": 9.5,
+      "3-A-SHOULDERS": 8.5,
+      "3-A-ARMS": 10,
+      "3-B-CHEST": 8.5,
+      "3-B-BACK": 9.5,
+      "3-B-QUADS": 9,
+      "3-B-HAMSTRINGS": 10,
+      "3-B-SHOULDERS": 10,
+      "3-B-ARMS": 9,
+      "4-A-CHEST": 9.5,
+      "4-A-BACK": 8.5,
+      "4-A-QUADS": 8.5,
+      "4-A-HAMSTRINGS": 9.5,
+      "4-A-SHOULDERS": 8.5,
+      "4-A-ARMS": 9.5,
+      "4-B-CHEST": 9.5,
+      "4-B-BACK": 10,
+      "4-B-QUADS": 8.5,
+      "4-B-HAMSTRINGS": 9,
+      "4-B-SHOULDERS": 8,
+      "4-B-ARMS": 8.5,
+      "5-A-CHEST": 8,
+      "5-A-BACK": 8,
+      "5-A-QUADS": 10,
+      "5-A-HAMSTRINGS": 8.5,
+      "5-A-SHOULDERS": 8.5,
+      "5-A-ARMS": 8,
+      "5-B-CHEST": 9.5,
+      "5-B-BACK": 9,
+      "5-B-QUADS": 8,
+      "5-B-HAMSTRINGS": 8.5,
+      "5-B-SHOULDERS": 10,
+      "5-B-ARMS": 9.5,
+      "6-A-BACK": 9,
+      "6-B-CHEST": 10,
+      "6-B-QUADS": 10,
+      "6-B-HAMSTRINGS": 10,
+      "6-B-SHOULDERS": 10,
+      "6-B-ARMS": 10
+    },
+    "defaults": {
+      "CHEST": 8.5,
+      "BACK": 8,
+      "QUADS": 8.5,
+      "HAMSTRINGS": 8,
+      "SHOULDERS": 8,
+      "ARMS": 8
+    }
+  },
+  "repProgression": {
+    "overrides": {
+      "1-A-CHEST": 0.3969907084081524,
+      "1-A-BACK": 0.08491870288017755,
+      "1-A-QUADS": 0.03558665188047383,
+      "1-A-HAMSTRINGS": 0.2208457161475046,
+      "1-A-SHOULDERS": 0.20764923316520234,
+      "1-A-ARMS": 0.16012217354019376,
+      "1-B-CHEST": 0.19993903440353467,
+      "1-B-BACK": 0.9219248256736002,
+      "1-B-QUADS": 0.4567217434663411,
+      "1-B-HAMSTRINGS": 0.025980665490492938,
+      "1-B-SHOULDERS": 0.6879749010881453,
+      "1-B-ARMS": 0.12971253299696806,
+      "2-A-CHEST": 0.16030630103038324,
+      "2-A-BACK": 0.8509065890248586,
+      "2-A-QUADS": 0.6833875617864053,
+      "2-A-HAMSTRINGS": 0.9475892212693798,
+      "2-A-SHOULDERS": 0.09647062645884708,
+      "2-A-ARMS": 0.7938724910422282,
+      "2-B-CHEST": 0.6299235163236705,
+      "2-B-BACK": 0.9944591023622322,
+      "2-B-QUADS": 0.09674504728549904,
+      "2-B-HAMSTRINGS": 0.10875940207781865,
+      "2-B-SHOULDERS": 0.7132676493117427,
+      "2-B-ARMS": 0.7683837907307576,
+      "3-A-CHEST": 0.6292255908350428,
+      "3-A-BACK": 0.2199674090076883,
+      "3-A-QUADS": 0.04342705862177776,
+      "3-A-HAMSTRINGS": 0.7585592201816654,
+      "3-A-SHOULDERS": 0.5699930604415813,
+      "3-A-ARMS": 0.8024668240498275,
+      "3-B-CHEST": 0.7886092166427462,
+      "3-B-BACK": 0.2799728229300832,
+      "3-B-QUADS": 0.35386464970474085,
+      "3-B-HAMSTRINGS": 0.3662149016652104,
+      "3-B-SHOULDERS": 0.8789474844601084,
+      "3-B-ARMS": 0.7418717151338191,
+      "4-A-CHEST": 0.9845859561537568,
+      "4-A-BACK": 0.6701015133539296,
+      "4-A-QUADS": 0.4324513940139173,
+      "4-A-HAMSTRINGS": 0.5765618489368446,
+      "4-A-SHOULDERS": 0.8322589584317813,
+      "4-A-ARMS": 0.899330690819232,
+      "4-B-CHEST": 0.8290476682742244,
+      "4-B-BACK": 0.42020062803319314,
+      "4-B-QUADS": 0.5421543369971917,
+      "4-B-HAMSTRINGS": 0.7790180622636036,
+      "4-B-SHOULDERS": 0.4663672720869605,
+      "4-B-ARMS": 0.0899240556381743,
+      "5-A-CHEST": 0.6145075546646052,
+      "5-A-BACK": 0.4541503182088765,
+      "5-A-QUADS": 0.7399372255888339,
+      "5-A-HAMSTRINGS": 0.9001624804784547,
+      "5-A-SHOULDERS": 0.8579687479622198,
+      "5-A-ARMS": 0.4916296303448817,
+      "5-B-CHEST": 0.07514139510115414,
+      "5-B-BACK": 0.5443105575120578,
+      "5-B-QUADS": 0.66586449095812,
+      "5-B-HAMSTRINGS": 0.28657834627089873,
+      "5-B-SHOULDERS": 0.7312760763446953,
+      "5-B-ARMS": 0.7350315220003686,
+      "6-A-CHEST": 0.07271910715341534,
+      "6-A-BACK": 0.9489453268924799,
+      "6-A-QUADS": 0.2785007540225013,
+      "6-A-HAMSTRINGS": 0.8911834142655094,
+      "6-A-SHOULDERS": 0.4094595926968406,
+      "6-A-ARMS": 0.6481570322288451,
+      "6-B-CHEST": 0.9026891189441985,
+      "6-B-BACK": 0.1086138902265017,
+      "6-B-QUADS": 0.40385646919436424,
+      "6-B-HAMSTRINGS": 0.6669649882591414,
+      "6-B-SHOULDERS": 0.6191782147489346,
+      "6-B-ARMS": 0.9169374548368022
+    },
+    "defaults": {
+      "CHEST": 0.5,
+      "BACK": 0.5,
+      "QUADS": 0.5,
+      "HAMSTRINGS": 0.5,
+      "SHOULDERS": 0.5,
+      "ARMS": 0.5
+    }
+  },
+  "exerciseRepRanges": {
+    "5": {
+      "min": 2,
+      "max": 8
+    },
+    "6": {
+      "min": 1,
+      "max": 8
+    },
+    "7": {
+      "min": 5,
+      "max": 10
+    },
+    "8": {
+      "min": 4,
+      "max": 8
+    },
+    "9": {
+      "min": 4,
+      "max": 10
+    },
+    "10": {
+      "min": 4,
+      "max": 10
+    },
+    "11": {
+      "min": 4,
+      "max": 10
+    },
+    "12": {
+      "min": 1,
+      "max": 10
+    },
+    "13": {
+      "min": 3,
+      "max": 10
+    },
+    "14": {
+      "min": 4,
+      "max": 12
+    },
+    "15": {
+      "min": 5,
+      "max": 12
+    },
+    "16": {
+      "min": 4,
+      "max": 10
+    },
+    "17": {
+      "min": 4,
+      "max": 10
+    },
+    "18": {
+      "min": 3,
+      "max": 8
+    },
+    "19": {
+      "min": 3,
+      "max": 8
+    },
+    "20": {
+      "min": 3,
+      "max": 8
+    },
+    "21": {
+      "min": 4,
+      "max": 9
+    },
+    "22": {
+      "min": 6,
+      "max": 12
+    },
+    "23": {
+      "min": 5,
+      "max": 9
+    },
+    "24": {
+      "min": 5,
+      "max": 10
+    },
+    "25": {
+      "min": 3,
+      "max": 10
+    },
+    "26": {
+      "min": 3,
+      "max": 10
+    }
+  }
+}

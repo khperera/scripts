@@ -736,7 +736,7 @@ function applRandomRepProgression() {
 
 /* ---------- Calculation Functions ---------- */
 function calculateE1RM(weight, reps, rpe) {
-  var repadjust = Math.Min(Math.max(0,10-rpe),10)
+  var repadjust = 0//Math.min(Math.max(0,10-rpe),10)
   var actualreps = repadjust +reps
   if (actualreps <= 7) {
     return weight * (1 + 0.0333 * actualreps);
