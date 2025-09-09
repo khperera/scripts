@@ -751,8 +751,20 @@ function roundToPlates(target, unit, minJump) {
 }
 
 function prescribeLoad(trainingMax, reps, rpe, unit, minJump) {
-  const percentage = RPE_TABLE[reps]?.[rpe];
-  if (!percentage) return 0;
+  percentage = 0
+  RIR = 10 - rpe
+  if(RIR<0)
+    RIR = 0
+  totalpossiblereps = reps + RIR
+  if(totalpossiblereps<=7)
+    percentage = 1/(1 + 0.0333 * totalpossiblereps)
+  else
+    percentage = 1/Math.pow(totalpossiblereps, 0.1)
+
+
+
+  // const percentage = RPE_TABLE[reps]?.[rpe];
+  // if (!percentage) return 0;
   
   const prescribedWeight = trainingMax * percentage;
   return roundToPlates(prescribedWeight, unit, minJump);
@@ -1492,16 +1504,32 @@ async function importData(event) {
   event.target.value = '';
 }
 
+// Save last selected week and day
+function saveLastSession() {
+  localStorage.setItem('lifttracker_last_week', $('#week').value);
+  localStorage.setItem('lifttracker_last_day', $('#day').value);
+}
+
+// Restore last selected week and day
+function restoreLastSession() {
+  const lastWeek = localStorage.getItem('lifttracker_last_week');
+  const lastDay = localStorage.getItem('lifttracker_last_day');
+  if (lastWeek) $('#week').value = lastWeek;
+  if (lastDay) $('#day').value = lastDay;
+}
+
 /* ---------- Event Listeners ---------- */
 function setupEventListeners() {
   // Week and day changes
   $('#week').onchange = () => {
     updateDayDropdown();
     renderToday();
+    saveLastSession();
   };
   
   $('#day').onchange = () => {
     renderToday();
+    saveLastSession();
   };
   
   // Unit change
@@ -1529,6 +1557,7 @@ function setupEventListeners() {
 
 /* ---------- Initialization ---------- */
 function initialize() {
+  restoreLastSession();
   // Set up event listeners
   setupEventListeners();
   
