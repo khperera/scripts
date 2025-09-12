@@ -1557,12 +1557,12 @@ function setupEventListeners() {
 
 /* ---------- Initialization ---------- */
 function initialize() {
+  // First, populate the day dropdown based on the week
+  updateDayDropdown();
+  // Then, restore last session values
   restoreLastSession();
   // Set up event listeners
   setupEventListeners();
-  
-  // Initialize day dropdown
-  updateDayDropdown();
   
   // Set up tab navigation
   renderTabs();
