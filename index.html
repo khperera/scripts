@@ -974,7 +974,7 @@ function renderToday() {
       <div class="row" style="justify-content: space-between; align-items: center;">
         <div>
           <div><strong>${exercise.name}</strong> <span class="pill">${exercise.cat}</span></div>
-          <div class="tiny">TM ${fmt(exercise.tm)} ${state.unit} • Expected: <b>${fmt(prescribedLoad)}</b> × ${targetReps} × ${prescribedSets} @ RPE ${scheduledRPE}${scheduledRPE !== item.rpe ? ` <span class="good">(RPE overridden from ${item.rpe})</span>` : ''}${targetReps !== item.reps ? ` <span class="good">(Reps overridden from ${item.reps})</span>` : ''}</div>
+          <div class="tiny">TM ${fmt(exercise.tm)} ${state.unit} • Expected: <b>${fmt(prescribedLoad)}</b> × ${targetReps} × ${prescribedSets} @ RPE ${scheduledRPE}${scheduledRPE !== item.rpe ? ` <span class="good">()</span>` : ''}${targetReps !== item.reps ? ` <span class="good">()</span>` : ''}</div>
         </div>
         <div class="row">
           <div><label>Weight</label><input type="number" step="0.5" value="${fmt(prescribedLoad)}" style="width: 110px;" class="weight-input"></div>
