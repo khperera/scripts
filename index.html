@@ -848,10 +848,11 @@ function progressTrainingMax(exercise) {
   
   // Apply safety bounds
   const referenceMax = Math.max(getBestRollingE1RM(exercise.id), bestWeeklyE1RM, exercise.tm);
-  const cap = referenceMax * 0.975;
-  const floor = referenceMax * 0.85;
+  // const cap = referenceMax * 0.975;
+  // const floor = referenceMax * 0.85;
+  exercise.tm = referenceMax;
   
-  exercise.tm = Math.min(Math.max(newTM, floor), cap) || exercise.tm;
+  // exercise.tm = Math.min(Math.max(newTM, floor), cap) || exercise.tm;
 }
 
 /* ---------- Day Management ---------- */
