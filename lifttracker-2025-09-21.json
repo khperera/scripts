@@ -1,0 +1,1419 @@
+{
+  "unit": "lb",
+  "settings": {
+    "upUpperStrong": 1.5,
+    "upUpperSmall": 0.5,
+    "downUpper": 2.5,
+    "upLowerStrong": 1.5,
+    "upLowerSmall": 1,
+    "downLower": 2.5,
+    "minJump": 2.5
+  },
+  "exercises": [
+    {
+      "id": 5,
+      "name": "RDL",
+      "cat": "HAMSTRINGS",
+      "tm": 396.5615047151627
+    },
+    {
+      "id": 6,
+      "name": "Squat",
+      "cat": "QUADS",
+      "tm": 377.15450000000004
+    },
+    {
+      "id": 7,
+      "name": "Tricep Pushdown",
+      "cat": "ARMS",
+      "tm": 122.77726097417903
+    },
+    {
+      "id": 8,
+      "name": "Pendulum Squat",
+      "cat": "QUADS",
+      "tm": 134.87372326098628
+    },
+    {
+      "id": 9,
+      "name": "Lateral Raise Machine",
+      "cat": "SHOULDERS",
+      "tm": 154.63229418457027
+    },
+    {
+      "id": 10,
+      "name": "Nautilus Leg Curl",
+      "cat": "HAMSTRINGS",
+      "tm": 107.38353762817383
+    },
+    {
+      "id": 11,
+      "name": "Arsenal Leg Press",
+      "cat": "QUADS",
+      "tm": 584.1664446972655
+    },
+    {
+      "id": 12,
+      "name": "Bench Press",
+      "cat": "CHEST",
+      "tm": 298.6806795743831
+    },
+    {
+      "id": 13,
+      "name": "Rogers Row",
+      "cat": "BACK",
+      "tm": 425.2388090075683
+    },
+    {
+      "id": 14,
+      "name": "Calf Press Arsenal",
+      "cat": "QUADS",
+      "tm": 572.8110623663462
+    },
+    {
+      "id": 15,
+      "name": "Pullover Machine",
+      "cat": "BACK",
+      "tm": 297.2376321547851
+    },
+    {
+      "id": 16,
+      "name": "Precor Leg Curl Seated",
+      "cat": "HAMSTRINGS",
+      "tm": 298.9557687568359
+    },
+    {
+      "id": 17,
+      "name": "Precore preacher Curl",
+      "cat": "ARMS",
+      "tm": 186.85964094232762
+    },
+    {
+      "id": 18,
+      "name": "Precor Leg Press",
+      "cat": "QUADS",
+      "tm": 525.7498002275389
+    },
+    {
+      "id": 19,
+      "name": "Lat Pulldown Machine O2",
+      "cat": "BACK",
+      "tm": 332.937
+    },
+    {
+      "id": 20,
+      "name": "Incline Chest Press O2",
+      "cat": "CHEST",
+      "tm": 352.57443484637423
+    },
+    {
+      "id": 21,
+      "name": "T Bar Row",
+      "cat": "BACK",
+      "tm": 224.23156913079313
+    },
+    {
+      "id": 22,
+      "name": "Calf Press 02",
+      "cat": "QUADS",
+      "tm": 499.4055
+    },
+    {
+      "id": 23,
+      "name": "Chest Fly O2",
+      "cat": "CHEST",
+      "tm": 295.944
+    },
+    {
+      "id": 24,
+      "name": "Rear Delt Fly 02",
+      "cat": "BACK",
+      "tm": 228.5121680727538
+    },
+    {
+      "id": 25,
+      "name": "Chest Fly Hardwork",
+      "cat": "CHEST",
+      "tm": 231.94844127685542
+    },
+    {
+      "id": 26,
+      "name": "Delt Fly Hardwork",
+      "cat": "BACK",
+      "tm": 171.81366020507812
+    },
+    {
+      "id": 27,
+      "name": "Max Pump Linear Row",
+      "cat": "BACK",
+      "tm": 95.0625
+    },
+    {
+      "id": 28,
+      "name": "Nautilus Incline",
+      "cat": "CHEST",
+      "tm": 246.62
+    },
+    {
+      "id": 29,
+      "name": "Maxpump Pullover Machine",
+      "cat": "BACK",
+      "tm": 95.0625
+    },
+    {
+      "id": 30,
+      "name": "Palms Up Wrist Curl",
+      "cat": "ARMS",
+      "tm": 33.271875
+    },
+    {
+      "id": 31,
+      "name": "Maxpump Lat Raise",
+      "cat": "SHOULDERS",
+      "tm": 118.828125
+    },
+    {
+      "id": 32,
+      "name": "Maxpump Omni Curl",
+      "cat": "ARMS",
+      "tm": 183.3387061201146
+    },
+    {
+      "id": 33,
+      "name": "Maxpump Leg Curl",
+      "cat": "HAMSTRINGS",
+      "tm": 279.615955346231
+    },
+    {
+      "id": 34,
+      "name": "Arsenal Hack Squat",
+      "cat": "QUADS",
+      "tm": 565.5868187685127
+    },
+    {
+      "id": 35,
+      "name": "Crunch Machine",
+      "cat": "CHEST",
+      "tm": 166.17815435683008
+    },
+    {
+      "id": 36,
+      "name": "Wrist Extension",
+      "cat": "ARMS",
+      "tm": 25.178508235883346
+    },
+    {
+      "id": 37,
+      "name": "Smith Machine Incline O2",
+      "cat": "CHEST",
+      "tm": 213.890625
+    },
+    {
+      "id": 38,
+      "name": "Single Leg Extension",
+      "cat": "QUADS",
+      "tm": 190.125
+    },
+    {
+      "id": 39,
+      "name": "Nautilus Flat Press",
+      "cat": "CHEST",
+      "tm": 114.075
+    },
+    {
+      "id": 40,
+      "name": "Hip Abdusction",
+      "cat": "QUADS",
+      "tm": 95.0625
+    },
+    {
+      "id": 41,
+      "name": "Machine Delt O2",
+      "cat": "SHOULDERS",
+      "tm": 95.0625
+    },
+    {
+      "id": 42,
+      "name": "MaxPump Multi High Row",
+      "cat": "BACK",
+      "tm": 268.295
+    },
+    {
+      "id": 43,
+      "name": "Seal T Bar Row",
+      "cat": "BACK",
+      "tm": 209.627
+    },
+    {
+      "id": 44,
+      "name": "Arsenal Supine Shoulder Press",
+      "cat": "SHOULDERS",
+      "tm": 186.85964094232762
+    },
+    {
+      "id": 45,
+      "name": "Arsenal Chest Fly",
+      "cat": "CHEST",
+      "tm": 359.94
+    },
+    {
+      "id": 46,
+      "name": "Arsenal Rear Delt Fly",
+      "cat": "BACK",
+      "tm": 205.13421663789046
+    },
+    {
+      "id": 47,
+      "name": "Tibialis Raise",
+      "cat": "HAMSTRINGS",
+      "tm": 115.38799685881338
+    },
+    {
+      "id": 48,
+      "name": "Max Pump Leg Extension",
+      "cat": "QUADS",
+      "tm": 230.967
+    },
+    {
+      "id": 49,
+      "name": "Maxpump seated leg curl",
+      "cat": "HAMSTRINGS",
+      "tm": 280.28946141349144
+    },
+    {
+      "id": 50,
+      "name": "Maxpump single leg extension",
+      "cat": "QUADS",
+      "tm": 100
+    }
+  ],
+  "nextId": 51,
+  "templates": {
+    "A-Upper": [
+      {
+        "exId": 12,
+        "reps": 9,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 31,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 27,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 14,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 39,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 15,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 30,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 35,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      }
+    ],
+    "A-Lower": [
+      {
+        "exId": 5,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 32,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 8,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 31,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 33,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 7,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 11,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 40,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      }
+    ],
+    "B-Upper": [
+      {
+        "exId": 12,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 42,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 14,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 28,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 43,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 44,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 46,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 45,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      }
+    ],
+    "B-Lower": [
+      {
+        "exId": 6,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 32,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 49,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 36,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 34,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 7,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 47,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 48,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      },
+      {
+        "exId": 35,
+        "reps": 5,
+        "rpe": 8.5,
+        "sets": 3
+      }
+    ]
+  },
+  "log": [
+    {
+      "date": "2025-09-20T17:02:39.941Z",
+      "exId": 48,
+      "weight": 198,
+      "reps": 5,
+      "rpe": 8,
+      "e1rm": 230.967,
+      "week": 5,
+      "day": "B-Lower",
+      "targetRpe": 8
+    },
+    {
+      "date": "2025-09-20T16:53:35.925Z",
+      "exId": 35,
+      "weight": 132,
+      "reps": 10,
+      "rpe": 9,
+      "e1rm": 166.17815435683008,
+      "week": 5,
+      "day": "B-Lower",
+      "targetRpe": 7
+    },
+    {
+      "date": "2025-09-20T16:52:18.088Z",
+      "exId": 35,
+      "weight": 132,
+      "reps": 8,
+      "rpe": 8,
+      "e1rm": 162.51106256152895,
+      "week": 5,
+      "day": "B-Lower",
+      "targetRpe": 7
+    },
+    {
+      "date": "2025-09-20T16:49:03.987Z",
+      "exId": 47,
+      "weight": 90,
+      "reps": 12,
+      "rpe": 9,
+      "e1rm": 115.38799685881338,
+      "week": 5,
+      "day": "B-Lower",
+      "targetRpe": 8.5
+    },
+    {
+      "date": "2025-09-20T16:33:56.673Z",
+      "exId": 34,
+      "weight": 445,
+      "reps": 11,
+      "rpe": 8,
+      "e1rm": 565.5868187685127,
+      "week": 5,
+      "day": "B-Lower",
+      "targetRpe": 8
+    },
+    {
+      "date": "2025-09-20T16:09:57.258Z",
+      "exId": 49,
+      "weight": 225,
+      "reps": 9,
+      "rpe": 9,
+      "e1rm": 280.28946141349144,
+      "week": 5,
+      "day": "B-Lower",
+      "targetRpe": 8.5
+    },
+    {
+      "date": "2025-09-20T16:07:43.286Z",
+      "exId": 49,
+      "weight": 227,
+      "reps": 7,
+      "rpe": 9,
+      "e1rm": 279.9137,
+      "week": 5,
+      "day": "B-Lower",
+      "targetRpe": 8.5
+    },
+    {
+      "date": "2025-09-20T15:42:39.207Z",
+      "exId": 32,
+      "weight": 143,
+      "reps": 12,
+      "rpe": 9.5,
+      "e1rm": 183.3387061201146,
+      "week": 5,
+      "day": "B-Lower",
+      "targetRpe": 9.5
+    },
+    {
+      "date": "2025-09-20T15:39:30.724Z",
+      "exId": 32,
+      "weight": 146,
+      "reps": 9,
+      "rpe": 9.5,
+      "e1rm": 181.87671718386554,
+      "week": 5,
+      "day": "B-Lower",
+      "targetRpe": 9.5
+    },
+    {
+      "date": "2025-09-20T15:30:47.205Z",
+      "exId": 6,
+      "weight": 365,
+      "reps": 1,
+      "rpe": 8,
+      "e1rm": 377.15450000000004,
+      "week": 5,
+      "day": "B-Lower",
+      "targetRpe": 8
+    },
+    {
+      "date": "2025-09-19T20:30:47.258Z",
+      "exId": 46,
+      "weight": 160,
+      "reps": 12,
+      "rpe": 8,
+      "e1rm": 205.13421663789046,
+      "week": 5,
+      "day": "B-Upper",
+      "targetRpe": 8
+    },
+    {
+      "date": "2025-09-19T20:25:50.470Z",
+      "exId": 44,
+      "weight": 150,
+      "reps": 9,
+      "rpe": 10,
+      "e1rm": 186.85964094232762,
+      "week": 5,
+      "day": "B-Upper",
+      "targetRpe": 10
+    },
+    {
+      "date": "2025-09-19T20:14:10.538Z",
+      "exId": 43,
+      "weight": 165,
+      "reps": 9,
+      "rpe": 9,
+      "e1rm": 205.54560503656037,
+      "week": 5,
+      "day": "B-Upper",
+      "targetRpe": 8
+    },
+    {
+      "date": "2025-09-19T20:14:01.439Z",
+      "exId": 43,
+      "weight": 165,
+      "reps": 9,
+      "rpe": 9,
+      "e1rm": 205.54560503656037,
+      "week": 5,
+      "day": "B-Upper",
+      "targetRpe": 8
+    },
+    {
+      "date": "2025-09-19T20:11:02.711Z",
+      "exId": 43,
+      "weight": 165,
+      "reps": 8,
+      "rpe": 8,
+      "e1rm": 203.1388282019112,
+      "week": 5,
+      "day": "B-Upper",
+      "targetRpe": 8
+    },
+    {
+      "date": "2025-09-19T19:56:22.659Z",
+      "exId": 28,
+      "weight": 200,
+      "reps": 8,
+      "rpe": 7,
+      "e1rm": 246.22888266898326,
+      "week": 5,
+      "day": "B-Upper",
+      "targetRpe": 7
+    },
+    {
+      "date": "2025-09-19T19:28:54.795Z",
+      "exId": 42,
+      "weight": 215,
+      "reps": 8,
+      "rpe": 8,
+      "e1rm": 264.696048869157,
+      "week": 5,
+      "day": "B-Upper",
+      "targetRpe": 8
+    },
+    {
+      "date": "2025-09-19T19:22:28.543Z",
+      "exId": 12,
+      "weight": 275,
+      "reps": 2,
+      "rpe": 7,
+      "e1rm": 293.315,
+      "week": 5,
+      "day": "B-Upper",
+      "targetRpe": 7
+    },
+    {
+      "date": "2025-09-19T19:13:25.138Z",
+      "exId": 12,
+      "weight": 255,
+      "reps": 2,
+      "rpe": 7,
+      "e1rm": 271.983,
+      "week": 5,
+      "day": "B-Upper",
+      "targetRpe": 7
+    },
+    {
+      "date": "2025-09-19T17:59:46.345Z",
+      "exId": 12,
+      "weight": 145,
+      "reps": 7,
+      "rpe": 9,
+      "e1rm": 178.79950000000002,
+      "week": 3,
+      "day": "A-Upper",
+      "targetRpe": 9
+    },
+    {
+      "date": "2025-09-19T17:59:30.005Z",
+      "exId": 12,
+      "weight": 235,
+      "reps": 11,
+      "rpe": 9,
+      "e1rm": 298.6806795743831,
+      "week": 3,
+      "day": "A-Upper",
+      "targetRpe": 9
+    },
+    {
+      "date": "2025-09-19T17:52:01.542Z",
+      "exId": 12,
+      "weight": 235,
+      "reps": 11,
+      "rpe": 10,
+      "e1rm": 298.6806795743831,
+      "week": 3,
+      "day": "A-Upper",
+      "targetRpe": 9
+    },
+    {
+      "date": "2025-09-19T17:51:04.253Z",
+      "exId": 47,
+      "weight": 80,
+      "reps": 10,
+      "rpe": 9,
+      "e1rm": 100.71403294353338,
+      "week": 4,
+      "day": "B-Lower",
+      "targetRpe": 9
+    },
+    {
+      "date": "2025-09-19T17:50:50.098Z",
+      "exId": 7,
+      "weight": 95,
+      "reps": 13,
+      "rpe": 8.5,
+      "e1rm": 122.77726097417903,
+      "week": 4,
+      "day": "B-Lower",
+      "targetRpe": 8.5
+    },
+    {
+      "date": "2025-09-19T17:50:41.056Z",
+      "exId": 34,
+      "weight": 495,
+      "reps": 4,
+      "rpe": 8.5,
+      "e1rm": 560.934,
+      "week": 4,
+      "day": "B-Lower",
+      "targetRpe": 8.5
+    },
+    {
+      "date": "2025-09-19T17:50:24.101Z",
+      "exId": 36,
+      "weight": 20,
+      "reps": 10,
+      "rpe": 8.5,
+      "e1rm": 25.178508235883346,
+      "week": 4,
+      "day": "B-Lower",
+      "targetRpe": 8.5
+    },
+    {
+      "date": "2025-09-19T17:50:05.407Z",
+      "exId": 33,
+      "weight": 220,
+      "reps": 11,
+      "rpe": 9,
+      "e1rm": 279.615955346231,
+      "week": 4,
+      "day": "B-Lower",
+      "targetRpe": 9
+    },
+    {
+      "date": "2025-09-19T17:49:44.475Z",
+      "exId": 6,
+      "weight": 335,
+      "reps": 2,
+      "rpe": 8.5,
+      "e1rm": 357.311,
+      "week": 4,
+      "day": "B-Lower",
+      "targetRpe": 8.5
+    },
+    {
+      "date": "2025-09-19T17:49:21.645Z",
+      "exId": 45,
+      "weight": 300,
+      "reps": 6,
+      "rpe": 9,
+      "e1rm": 359.94,
+      "week": 4,
+      "day": "B-Upper",
+      "targetRpe": 7.5
+    },
+    {
+      "date": "2025-09-19T17:48:59.903Z",
+      "exId": 46,
+      "weight": 170,
+      "reps": 5,
+      "rpe": 9,
+      "e1rm": 198.305,
+      "week": 4,
+      "day": "B-Upper",
+      "targetRpe": 8
+    },
+    {
+      "date": "2025-09-19T17:48:48.317Z",
+      "exId": 44,
+      "weight": 145,
+      "reps": 9,
+      "rpe": 9,
+      "e1rm": 180.63098624425,
+      "week": 4,
+      "day": "B-Upper",
+      "targetRpe": 8
+    },
+    {
+      "date": "2025-09-19T17:48:33.120Z",
+      "exId": 43,
+      "weight": 170,
+      "reps": 7,
+      "rpe": 9,
+      "e1rm": 209.627,
+      "week": 4,
+      "day": "B-Upper",
+      "targetRpe": 8
+    },
+    {
+      "date": "2025-09-19T17:48:16.073Z",
+      "exId": 28,
+      "weight": 200,
+      "reps": 7,
+      "rpe": 9.5,
+      "e1rm": 246.62,
+      "week": 4,
+      "day": "B-Upper",
+      "targetRpe": 7.5
+    },
+    {
+      "date": "2025-09-19T17:47:50.722Z",
+      "exId": 14,
+      "weight": 455,
+      "reps": 10,
+      "rpe": 9.5,
+      "e1rm": 572.8110623663462,
+      "week": 4,
+      "day": "B-Upper",
+      "targetRpe": 8.5
+    },
+    {
+      "date": "2025-09-19T17:47:27.082Z",
+      "exId": 42,
+      "weight": 230,
+      "reps": 5,
+      "rpe": 8,
+      "e1rm": 268.295,
+      "week": 4,
+      "day": "B-Upper",
+      "targetRpe": 8
+    },
+    {
+      "date": "2025-09-19T17:47:03.497Z",
+      "exId": 12,
+      "weight": 235,
+      "reps": 11,
+      "rpe": 9.5,
+      "e1rm": 298.6806795743831,
+      "week": 4,
+      "day": "B-Upper",
+      "targetRpe": 7.5
+    },
+    {
+      "date": "2025-09-03T20:01:30.466Z",
+      "exId": 5,
+      "weight": 315,
+      "reps": 10,
+      "rpe": 9,
+      "e1rm": 396.5615047151627,
+      "week": 1,
+      "day": "A-Upper",
+      "targetRpe": 9
+    },
+    {
+      "date": "2025-09-02T20:22:25.407Z",
+      "exId": 12,
+      "weight": 225,
+      "reps": 10,
+      "rpe": 9.5,
+      "e1rm": 283.25821765368767,
+      "week": 4,
+      "day": "A-Upper",
+      "targetRpe": 9.5
+    },
+    {
+      "date": "2025-08-31T16:27:01.392Z",
+      "exId": 7,
+      "weight": 95,
+      "reps": 9,
+      "rpe": 9,
+      "e1rm": 118.34443926347416,
+      "week": 3,
+      "day": "B-Lower",
+      "targetRpe": 9
+    },
+    {
+      "date": "2025-08-31T16:26:52.249Z",
+      "exId": 17,
+      "weight": 150,
+      "reps": 9,
+      "rpe": 9,
+      "e1rm": 186.85964094232762,
+      "week": 3,
+      "day": "B-Lower",
+      "targetRpe": 9
+    },
+    {
+      "date": "2025-08-31T16:26:49.428Z",
+      "exId": 17,
+      "weight": 150,
+      "reps": 8,
+      "rpe": 9,
+      "e1rm": 184.67166200173745,
+      "week": 3,
+      "day": "B-Lower",
+      "targetRpe": 9
+    },
+    {
+      "date": "2025-08-31T16:26:47.873Z",
+      "exId": 6,
+      "weight": 315,
+      "reps": 1,
+      "rpe": 9,
+      "e1rm": 325.4895,
+      "week": 3,
+      "day": "B-Lower",
+      "targetRpe": 9
+    },
+    {
+      "date": "2025-08-29T19:28:38.178Z",
+      "exId": 23,
+      "weight": 240,
+      "reps": 7,
+      "rpe": 9.5,
+      "e1rm": 295.944,
+      "week": 3,
+      "day": "B-Upper",
+      "targetRpe": 8.5
+    },
+    {
+      "date": "2025-08-29T19:19:09.826Z",
+      "exId": 21,
+      "weight": 180,
+      "reps": 9,
+      "rpe": 9.5,
+      "e1rm": 224.23156913079313,
+      "week": 3,
+      "day": "B-Upper",
+      "targetRpe": 9.5
+    },
+    {
+      "date": "2025-08-29T19:07:11.720Z",
+      "exId": 22,
+      "weight": 405,
+      "reps": 7,
+      "rpe": 9,
+      "e1rm": 499.4055,
+      "week": 3,
+      "day": "B-Upper",
+      "targetRpe": 9
+    },
+    {
+      "date": "2025-08-29T19:06:57.954Z",
+      "exId": 19,
+      "weight": 270,
+      "reps": 8,
+      "rpe": 10,
+      "e1rm": 332.4089916031274,
+      "week": 3,
+      "day": "B-Upper",
+      "targetRpe": 9.5
+    },
+    {
+      "date": "2025-08-29T19:06:33.872Z",
+      "exId": 20,
+      "weight": 275,
+      "reps": 12,
+      "rpe": 10,
+      "e1rm": 352.57443484637423,
+      "week": 3,
+      "day": "B-Upper",
+      "targetRpe": 8.5
+    },
+    {
+      "date": "2025-08-29T19:00:34.397Z",
+      "exId": 22,
+      "weight": 405,
+      "reps": 7,
+      "rpe": 9,
+      "e1rm": 499.4055,
+      "week": 3,
+      "day": "B-Upper",
+      "targetRpe": 9
+    },
+    {
+      "date": "2025-08-29T18:45:08.261Z",
+      "exId": 19,
+      "weight": 270,
+      "reps": 8,
+      "rpe": 9,
+      "e1rm": 332.4089916031274,
+      "week": 3,
+      "day": "B-Upper",
+      "targetRpe": 9.5
+    },
+    {
+      "date": "2025-08-29T18:43:38.062Z",
+      "exId": 19,
+      "weight": 270,
+      "reps": 7,
+      "rpe": 10,
+      "e1rm": 332.937,
+      "week": 3,
+      "day": "B-Upper",
+      "targetRpe": 9.5
+    },
+    {
+      "date": "2025-08-26T00:16:08.081Z",
+      "exId": 3,
+      "weight": 100,
+      "reps": 6,
+      "rpe": 8,
+      "e1rm": 100,
+      "week": 1,
+      "half": "6-1"
+    },
+    {
+      "date": "2025-08-26T00:15:55.493Z",
+      "exId": 1,
+      "weight": 100,
+      "reps": 9,
+      "rpe": 8.5,
+      "e1rm": 100,
+      "week": 1,
+      "half": "6-1"
+    }
+  ],
+  "rpeSchedule": {
+    "overrides": {
+      "1-A-CHEST": 8,
+      "1-A-QUADS": 8.5,
+      "1-A-HAMSTRINGS": 9,
+      "1-A-SHOULDERS": 8,
+      "1-A-ARMS": 8,
+      "1-B-CHEST": 10,
+      "1-B-BACK": 9,
+      "1-B-QUADS": 9,
+      "1-B-HAMSTRINGS": 10,
+      "1-B-SHOULDERS": 9,
+      "1-B-ARMS": 9.5,
+      "2-A-CHEST": 8,
+      "2-A-QUADS": 9,
+      "2-A-HAMSTRINGS": 8.5,
+      "2-A-SHOULDERS": 8.5,
+      "2-A-ARMS": 10,
+      "2-B-QUADS": 8,
+      "2-B-HAMSTRINGS": 8.5,
+      "2-B-SHOULDERS": 9.5,
+      "2-B-ARMS": 8.5,
+      "3-A-QUADS": 9.5,
+      "3-A-HAMSTRINGS": 9.5,
+      "3-A-SHOULDERS": 8.5,
+      "3-A-ARMS": 10,
+      "3-B-CHEST": 7,
+      "3-B-QUADS": 9,
+      "3-B-HAMSTRINGS": 10,
+      "3-B-SHOULDERS": 10,
+      "3-B-ARMS": 9,
+      "4-A-QUADS": 8.5,
+      "4-A-HAMSTRINGS": 9.5,
+      "4-A-SHOULDERS": 8.5,
+      "4-A-ARMS": 9.5,
+      "4-B-QUADS": 8.5,
+      "4-B-HAMSTRINGS": 9,
+      "4-B-SHOULDERS": 8,
+      "4-B-ARMS": 8.5,
+      "5-A-QUADS": 10,
+      "5-A-HAMSTRINGS": 8.5,
+      "5-A-SHOULDERS": 8.5,
+      "5-A-ARMS": 8,
+      "5-B-QUADS": 8,
+      "5-B-HAMSTRINGS": 8.5,
+      "5-B-SHOULDERS": 10,
+      "5-B-ARMS": 9.5,
+      "6-A-BACK": 6,
+      "6-B-CHEST": 5,
+      "6-B-QUADS": 6,
+      "6-B-HAMSTRINGS": 6,
+      "6-B-SHOULDERS": 6,
+      "6-B-ARMS": 6,
+      "2-B-CHEST": 8,
+      "3-A-CHEST": 9,
+      "5-A-CHEST": 8,
+      "5-B-CHEST": 9,
+      "4-A-CHEST": 10,
+      "4-B-CHEST": 8,
+      "6-A-CHEST": 6,
+      "6-B-BACK": 6,
+      "6-A-QUADS": 6,
+      "6-A-HAMSTRINGS": 6,
+      "6-A-SHOULDERS": 6,
+      "6-A-ARMS": 6,
+      "2-B-BACK": 7.5,
+      "3-A-BACK": 10,
+      "4-A-BACK": 7.5,
+      "4-B-BACK": 10,
+      "5-A-BACK": 9,
+      "5-B-BACK": 9
+    },
+    "defaults": {
+      "CHEST": 8.5,
+      "BACK": 8,
+      "QUADS": 8.5,
+      "HAMSTRINGS": 8,
+      "SHOULDERS": 8,
+      "ARMS": 8
+    }
+  },
+  "repProgression": {
+    "overrides": {
+      "1-A-CHEST": 0.73,
+      "1-A-BACK": 0.9,
+      "1-A-QUADS": 0.852,
+      "1-A-HAMSTRINGS": 0.2208457161475046,
+      "1-A-SHOULDERS": 0.20764923316520234,
+      "1-A-ARMS": 0.16012217354019376,
+      "1-B-CHEST": 0.95,
+      "1-B-BACK": 0.3,
+      "1-B-QUADS": 0.21,
+      "1-B-HAMSTRINGS": 0.025980665490492938,
+      "1-B-SHOULDERS": 0.6879749010881453,
+      "1-B-ARMS": 0.12971253299696806,
+      "2-A-CHEST": 0.01,
+      "2-A-BACK": 0.71,
+      "2-A-QUADS": 0.77,
+      "2-A-HAMSTRINGS": 0.9475892212693798,
+      "2-A-SHOULDERS": 0.09647062645884708,
+      "2-A-ARMS": 0.7938724910422282,
+      "2-B-BACK": 0.22,
+      "2-B-QUADS": 0.31,
+      "2-B-HAMSTRINGS": 0.10875940207781865,
+      "2-B-SHOULDERS": 0.7132676493117427,
+      "2-B-ARMS": 0.7683837907307576,
+      "3-A-CHEST": 0.31,
+      "3-A-BACK": 0.65,
+      "3-A-HAMSTRINGS": 0.7585592201816654,
+      "3-A-SHOULDERS": 0.5699930604415813,
+      "3-A-ARMS": 0.8024668240498275,
+      "3-B-CHEST": 0.72,
+      "3-B-BACK": 0.35,
+      "3-B-QUADS": 0.12,
+      "3-B-HAMSTRINGS": 0.3662149016652104,
+      "3-B-SHOULDERS": 0.8789474844601084,
+      "3-B-ARMS": 0.7418717151338191,
+      "4-A-CHEST": 0.04,
+      "4-A-BACK": 0.12,
+      "4-A-QUADS": 0.35,
+      "4-A-HAMSTRINGS": 0.5765618489368446,
+      "4-A-SHOULDERS": 0.8322589584317813,
+      "4-A-ARMS": 0.899330690819232,
+      "4-B-CHEST": 0.36,
+      "4-B-QUADS": 0.65,
+      "4-B-HAMSTRINGS": 0.7790180622636036,
+      "4-B-SHOULDERS": 0.4663672720869605,
+      "4-B-ARMS": 0.0899240556381743,
+      "5-A-CHEST": 0.77,
+      "5-A-BACK": 0.31,
+      "5-A-QUADS": 0.22,
+      "5-A-HAMSTRINGS": 0.9001624804784547,
+      "5-A-SHOULDERS": 0.8579687479622198,
+      "5-A-ARMS": 0.4916296303448817,
+      "5-B-CHEST": 0.45,
+      "5-B-BACK": 0.77,
+      "5-B-QUADS": 0.71,
+      "5-B-HAMSTRINGS": 0.28657834627089873,
+      "5-B-SHOULDERS": 0.7312760763446953,
+      "5-B-ARMS": 0.7350315220003686,
+      "6-A-CHEST": 0.79,
+      "6-A-BACK": 0.21,
+      "6-A-QUADS": 0.3,
+      "6-A-HAMSTRINGS": 0.8911834142655094,
+      "6-A-SHOULDERS": 0.4094595926968406,
+      "6-A-ARMS": 0.6481570322288451,
+      "6-B-CHEST": 0.6,
+      "6-B-BACK": 0.85,
+      "6-B-QUADS": 0.9,
+      "6-B-HAMSTRINGS": 0.6669649882591414,
+      "6-B-SHOULDERS": 0.6191782147489346,
+      "6-B-ARMS": 0.9169374548368022
+    },
+    "defaults": {
+      "CHEST": 0.5,
+      "BACK": 0.5,
+      "QUADS": 0.5,
+      "HAMSTRINGS": 0.5,
+      "SHOULDERS": 0.5,
+      "ARMS": 0.5
+    }
+  },
+  "exerciseRepRanges": {
+    "5": {
+      "min": 6,
+      "max": 12
+    },
+    "6": {
+      "min": 2,
+      "max": 9
+    },
+    "7": {
+      "min": 5,
+      "max": 10
+    },
+    "8": {
+      "min": 4,
+      "max": 8
+    },
+    "9": {
+      "min": 4,
+      "max": 10
+    },
+    "10": {
+      "min": 4,
+      "max": 10
+    },
+    "11": {
+      "min": 4,
+      "max": 10
+    },
+    "12": {
+      "min": 1,
+      "max": 10
+    },
+    "13": {
+      "min": 3,
+      "max": 10
+    },
+    "14": {
+      "min": 4,
+      "max": 12
+    },
+    "15": {
+      "min": 5,
+      "max": 12
+    },
+    "16": {
+      "min": 4,
+      "max": 10
+    },
+    "17": {
+      "min": 4,
+      "max": 10
+    },
+    "18": {
+      "min": 3,
+      "max": 8
+    },
+    "19": {
+      "min": 3,
+      "max": 8
+    },
+    "20": {
+      "min": 3,
+      "max": 8
+    },
+    "21": {
+      "min": 4,
+      "max": 9
+    },
+    "22": {
+      "min": 6,
+      "max": 12
+    },
+    "23": {
+      "min": 5,
+      "max": 9
+    },
+    "24": {
+      "min": 5,
+      "max": 10
+    },
+    "25": {
+      "min": 3,
+      "max": 10
+    },
+    "26": {
+      "min": 3,
+      "max": 10
+    },
+    "27": {
+      "min": 5,
+      "max": 10
+    },
+    "28": {
+      "min": 5,
+      "max": 10
+    },
+    "29": {
+      "min": 5,
+      "max": 10
+    },
+    "30": {
+      "min": 10,
+      "max": 14
+    },
+    "31": {
+      "min": 7,
+      "max": 12
+    },
+    "32": {
+      "min": 8,
+      "max": 12
+    },
+    "33": {
+      "min": 6,
+      "max": 12
+    },
+    "34": {
+      "min": 5,
+      "max": 12
+    },
+    "35": {
+      "min": 6,
+      "max": 12
+    },
+    "36": {
+      "min": 8,
+      "max": 14
+    },
+    "37": {
+      "min": 7,
+      "max": 12
+    },
+    "38": {
+      "min": 7,
+      "max": 14
+    },
+    "39": {
+      "min": 7,
+      "max": 12
+    },
+    "40": {
+      "min": 8,
+      "max": 15
+    },
+    "41": {
+      "min": 5,
+      "max": 12
+    },
+    "42": {
+      "min": 5,
+      "max": 10
+    },
+    "43": {
+      "min": 5,
+      "max": 10
+    },
+    "44": {
+      "min": 8,
+      "max": 13
+    },
+    "45": {
+      "min": 9,
+      "max": 15
+    },
+    "46": {
+      "min": 8,
+      "max": 14
+    },
+    "47": {
+      "min": 8,
+      "max": 14
+    },
+    "48": {
+      "min": 9,
+      "max": 16
+    },
+    "49": {
+      "min": 5,
+      "max": 11
+    },
+    "50": {
+      "min": 6,
+      "max": 10
+    }
+  }
+}

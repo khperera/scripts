@@ -965,6 +965,9 @@ function renderToday() {
     
     let prescribedLoad = prescribeLoad(exercise.tm, targetReps, scheduledRPE, state.unit, state.settings.minJump);
     let prescribedSets = item.sets;
+
+    let prescribedSets_myo = 13;
+    let prescribedLoad_myo = prescribeLoad(exercise.tm, prescribedSets_myo, scheduledRPE, state.unit, state.settings.minJump);
     
     // Apply deload if week 6
     [prescribedLoad, prescribedSets] = applyDeload(week, prescribedLoad, prescribedSets);
@@ -973,16 +976,17 @@ function renderToday() {
     exerciseCard.className = 'card';
     exerciseCard.innerHTML = `
       <div class="row" style="justify-content: space-between; align-items: center;">
-        <div>
-          <div><strong>${exercise.name}</strong> <span class="pill">${exercise.cat}</span></div>
-          <div class="tiny">TM ${fmt(exercise.tm)} ${state.unit} • Expected: <b>${fmt(prescribedLoad)}</b> × ${targetReps} × ${prescribedSets} @ RPE ${scheduledRPE}${scheduledRPE !== item.rpe ? ` <span class="good">()</span>` : ''}${targetReps !== item.reps ? ` <span class="good">()</span>` : ''}</div>
-        </div>
-        <div class="row">
-          <div><label>Weight</label><input type="number" step="0.5" value="${fmt(prescribedLoad)}" style="width: 110px;" class="weight-input"></div>
-          <div><label>Reps</label><input type="number" value="${targetReps}" style="width: 80px;" class="reps-input"></div>
-          <div><label>RPE</label><input type="number" step="0.5" value="${scheduledRPE}" style="width: 80px;" class="rpe-input"></div>
-          <div><label>&nbsp;</label><button class="log-btn">Add Set</button></div>
-        </div>
+      <div>
+        <div><strong>${exercise.name}</strong> <span class="pill">${exercise.cat}</span></div>
+        <div class="tiny">TM ${fmt(exercise.tm)} ${state.unit} • Expected: <b>${fmt(prescribedLoad)}</b> × ${targetReps} × ${prescribedSets} @ RPE ${scheduledRPE}${scheduledRPE !== item.rpe ? "" : ''}${targetReps !== item.reps ? '' : ''}</div>
+        <div class="tiny">Myorep load: <b>${fmt(prescribedLoad_myo)}</b> @ RPE ${scheduledRPE}</div>
+      </div>
+      <div class="row">
+        <div><label>Weight</label><input type="number" step="0.5" value="${fmt(prescribedLoad)}" style="width: 110px;" class="weight-input"></div>
+        <div><label>Reps</label><input type="number" value="${targetReps}" style="width: 80px;" class="reps-input"></div>
+        <div><label>RPE</label><input type="number" step="0.5" value="${scheduledRPE}" style="width: 80px;" class="rpe-input"></div>
+        <div><label>&nbsp;</label><button class="log-btn">Add Set</button></div>
+      </div>
       </div>
       <div class="tiny feedback" style="margin-top: 6px;" hidden></div>
     `;
