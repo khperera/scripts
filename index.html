@@ -784,8 +784,8 @@ function prescribeLoad(trainingMax, reps, rpe, unit, minJump) {
   // const percentage = RPE_TABLE[reps]?.[rpe];
   // if (!percentage) return 0;
   
-  const prescribedWeight = trainingMax * percentage;
-  // return roundToPlates(prescribedWeight, unit, minJump);
+  // const prescribedWeight = trainingMax * percentage;
+  return roundToPlates(prescribedWeight, unit, minJump);
   return prescribedWeight;
 
 }
