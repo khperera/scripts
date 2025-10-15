@@ -759,17 +759,19 @@ function roundToPlates(target, unit, minJump) {
 }
 
 function prescribeLoad(trainingMax, reps, rpe, unit, minJump) {
-  percentage = 0
+  let percentage = 0
   RIR = 10 - rpe
   if(RIR<0)
     RIR = 0
   totalpossiblereps = reps + RIR
 
-  if(totalpossiblereps<=16){
+  if(totalpossiblereps<=16)
+  {
     var epley = (1 + 0.0333 * totalpossiblereps);
     var wathan = 100 / (48.8 + (53.8 * Math.exp(-0.075 * totalpossiblereps)))
     var lombardi = (Math.pow(totalpossiblereps,0.1));
     var average = epley*0.33+wathan*0.33+lombardi*0.34;
+    // Estimate percentage of 1RM by taking the inverse of the average of Epley, Wathan, and Lombardi formulas
     percentage = 1/average
 
 
