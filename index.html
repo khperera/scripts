@@ -738,9 +738,17 @@ function applRandomRepProgression() {
 function calculateE1RM(weight, reps, rpe) {
   var repadjust = 0//Math.min(Math.max(0,10-rpe),10)
   var actualreps = repadjust +reps
-  if (actualreps <= 7) {
-    return weight * (1 + 0.0333 * actualreps);
+  if(actualreps == 1){
+    return weight
   }
+
+  if (actualreps <= 16) {
+    var epley = weight * (1 + 0.0333 * actualreps);
+    var wathan = 100 * weight / (48.8+(53.8*Math.exp(-0.075*actualreps)))
+    var lombardi = weight * (Math.pow(actualreps,0.1));
+    return epley*0.33+wathan*0.33+lombardi*0.34;
+  }
+
   return weight * Math.pow(actualreps, 0.1);
 }
 
@@ -756,13 +764,21 @@ function prescribeLoad(trainingMax, reps, rpe, unit, minJump) {
   if(RIR<0)
     RIR = 0
   totalpossiblereps = reps + RIR
-  if(totalpossiblereps<=7)
-    percentage = 1/(1 + 0.0333 * totalpossiblereps)
-  else
+
+  if(totalpossiblereps<=16){
+    var epley = (1 + 0.0333 * totalpossiblereps);
+    var wathan = 100 / (48.8 + (53.8 * Math.exp(-0.075 * totalpossiblereps)))
+    var lombardi = (Math.pow(totalpossiblereps,0.1));
+    var average = epley*0.33+wathan*0.33+lombardi*0.34;
+    percentage = 1/average
+
+
+  }
+
+
+  else {
     percentage = 1/Math.pow(totalpossiblereps, 0.1)
-
-
-
+  }
   // const percentage = RPE_TABLE[reps]?.[rpe];
   // if (!percentage) return 0;
   
