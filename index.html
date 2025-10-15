@@ -781,6 +781,9 @@ function prescribeLoad(trainingMax, reps, rpe, unit, minJump) {
   else {
     percentage = 1/Math.pow(totalpossiblereps, 0.1)
   }
+  if(totalpossiblereps == 1){
+    percentage = 1
+  }
   // const percentage = RPE_TABLE[reps]?.[rpe];
   // if (!percentage) return 0;
   
