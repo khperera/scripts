@@ -1,0 +1,10 @@
+{
+  "name": "lifttracker-tests",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
