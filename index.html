@@ -161,38 +161,8 @@
   }
   .prog-cell.is-override .prog-num { color: var(--good); font-weight: 700; }
 
-  .prog-slider {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 100%;
-    height: 4px;
-    border-radius: 2px;
-    background: #2a2f3a;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    display: block;
-    margin: 0 0 3px 0;
-  }
-  .prog-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 14px; height: 14px;
-    border-radius: 50%;
-    background: var(--accent);
-    cursor: pointer;
-    border: 2px solid #0f1115;
-  }
-  .prog-slider::-moz-range-thumb {
-    width: 14px; height: 14px;
-    border-radius: 50%;
-    background: var(--accent);
-    cursor: pointer;
-    border: 2px solid #0f1115;
-  }
-  .rpe-slider::-webkit-slider-thumb { background: #71a8ff; }
-  .rep-slider::-webkit-slider-thumb { background: #37d67a; }
-  .rpe-slider::-moz-range-thumb     { background: #71a8ff; }
-  .rep-slider::-moz-range-thumb     { background: #37d67a; }
+  /* Draggable charts — cursor feedback */
+  #rpeChart, #repChart { cursor: crosshair; }
 
   .prog-num {
     width: 52px;
@@ -210,7 +180,7 @@
 
   .prog-separator td { padding: 4px 0; background: transparent; border-bottom: 1px solid #1c1f27; }
 
-  .prog-chart-wrap { position: relative; height: 230px; }
+  .prog-chart-wrap { position: relative; height: 260px; }
 </style>
 </head>
 <body>
@@ -507,6 +477,7 @@
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-dragdata@2.3.0/dist/chartjs-plugin-dragdata.min.js"></script>
 <script>
 /* ---------- Constants and State ---------- */
 const STORE_KEY = 'lifttracker_v1';
@@ -1635,6 +1606,31 @@ function computeLoadFactor(rpe, repPct) {
   return Math.min(1, Math.max(0, raw));
 }
 
+// Drag helpers: translate chart indices to data coordinates
+function progIndexToBP(datasetIndex) {
+  return BODY_PARTS[datasetIndex]; // datasets always match BODY_PARTS order
+}
+function progIndexToWeekSection(pointIndex) {
+  return { week: Math.floor(pointIndex / 2) + 1, section: pointIndex % 2 === 0 ? 'A' : 'B' };
+}
+// Sync a table number input to a new value after a chart drag
+function syncTableInput(type, week, section, bp, value) {
+  const el = document.querySelector(
+    `#progressionTable .prog-cell[data-type="${type}"][data-week="${week}"][data-section="${section}"][data-bp="${bp}"] .prog-num`
+  );
+  if (el) el.value = value;
+}
+// Recompute and push updated data into the load chart without full re-render
+function refreshLoadChart() {
+  if (!loadChartInstance) return;
+  const newDs = buildProgressionDatasets('load');
+  loadChartInstance.data.datasets.forEach((ds, i) => {
+    ds.data   = newDs[i].data;
+    ds.hidden = !progressionVisibility[newDs[i].label];
+  });
+  loadChartInstance.update('none');
+}
+
 function buildProgressionDatasets(type) {
   return BODY_PARTS.map(bp => {
     const color = PROGRESSION_COLORS[bp];
@@ -1656,8 +1652,9 @@ function buildProgressionDatasets(type) {
       borderColor: color,
       backgroundColor: color + '22',
       pointBackgroundColor: color,
-      pointRadius: 4,
-      pointHoverRadius: 7,
+      pointRadius: 6,
+      pointHoverRadius: 10,
+      pointHitRadius: 16,
       tension: 0.3,
       fill: false,
       hidden: !progressionVisibility[bp],
@@ -1665,7 +1662,7 @@ function buildProgressionDatasets(type) {
   });
 }
 
-function progressionChartOptions(yLabel, yMin, yMax, fmtFn) {
+function progressionChartOptions(yLabel, yMin, yMax, fmtFn, dragCallbacks) {
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -1673,7 +1670,8 @@ function progressionChartOptions(yLabel, yMin, yMax, fmtFn) {
     interaction: { mode: 'index', intersect: false },
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label: fmtFn || (c => `${c.dataset.label}: ${c.parsed.y}`) } }
+      tooltip: { callbacks: { label: fmtFn || (c => `${c.dataset.label}: ${c.parsed.y}`) } },
+      dragData: dragCallbacks || false,
     },
     scales: {
       x: { ticks: { color: '#8b95a7', font: { size: 11 } }, grid: { color: '#1e2230' } },
@@ -1695,20 +1693,55 @@ function destroyProgressionCharts() {
 
 function initProgressionCharts() {
   destroyProgressionCharts();
+
+  const rpeDrag = {
+    round: 1,
+    dragX: false,
+    showTooltip: true,
+    onDragEnd: (e, datasetIndex, index, value) => {
+      const snapped = Math.round(value * 2) / 2;          // snap to nearest 0.5
+      const bp = progIndexToBP(datasetIndex);
+      const { week, section } = progIndexToWeekSection(index);
+      setRPEOverride(week, section, bp, snapped);
+      syncTableInput('rpe', week, section, bp, snapped);
+      rpeChartInstance.data.datasets[datasetIndex].data[index] = snapped;
+      rpeChartInstance.update('none');
+      refreshLoadChart();
+      if (!$('#page-today').hidden) renderToday();
+    }
+  };
+
+  const repDrag = {
+    round: 2,
+    dragX: false,
+    showTooltip: true,
+    onDragEnd: (e, datasetIndex, index, value) => {
+      const snapped = Math.round(value * 20) / 20;        // snap to nearest 0.05
+      const bp = progIndexToBP(datasetIndex);
+      const { week, section } = progIndexToWeekSection(index);
+      setRepPercentageOverride(week, section, bp, snapped);
+      syncTableInput('rep', week, section, bp, snapped);
+      repChartInstance.data.datasets[datasetIndex].data[index] = snapped;
+      repChartInstance.update('none');
+      refreshLoadChart();
+      if (!$('#page-today').hidden) renderToday();
+    }
+  };
+
   rpeChartInstance = new Chart($('#rpeChart').getContext('2d'), {
     type: 'line',
     data: { labels: PROG_X_LABELS, datasets: buildProgressionDatasets('rpe') },
-    options: progressionChartOptions('RPE', 5, 10, c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}`)
+    options: progressionChartOptions('RPE', 5, 10, c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}`, rpeDrag)
   });
   repChartInstance = new Chart($('#repChart').getContext('2d'), {
     type: 'line',
     data: { labels: PROG_X_LABELS, datasets: buildProgressionDatasets('rep') },
-    options: progressionChartOptions('Rep %', 0, 1, c => `${c.dataset.label}: ${(c.parsed.y * 100).toFixed(0)}%`)
+    options: progressionChartOptions('Rep %', 0, 1, c => `${c.dataset.label}: ${(c.parsed.y * 100).toFixed(0)}%`, repDrag)
   });
   loadChartInstance = new Chart($('#loadChart').getContext('2d'), {
     type: 'line',
     data: { labels: PROG_X_LABELS, datasets: buildProgressionDatasets('load') },
-    options: progressionChartOptions('Load %TM', 0.5, 1.0, c => `${c.dataset.label}: ${(c.parsed.y * 100).toFixed(1)}%`)
+    options: progressionChartOptions('Load %TM', 0.5, 1.0, c => `${c.dataset.label}: ${(c.parsed.y * 100).toFixed(1)}%`, false)
   });
 }
 
@@ -1777,7 +1810,7 @@ function renderProgressionTable() {
         const td = document.createElement('td');
         td.className = 'prog-cell' + (isOvr ? ' is-override' : '');
         td.dataset.week = week; td.dataset.section = section; td.dataset.bp = bp; td.dataset.type = 'rpe';
-        td.innerHTML = `<input type="range" class="prog-slider rpe-slider" min="5" max="10" step="0.5" value="${val}"><input type="number" class="prog-num" min="5" max="10" step="0.5" value="${val}">`;
+        td.innerHTML = `<input type="number" class="prog-num" min="5" max="10" step="0.5" value="${val}">`;
         rpeRow.appendChild(td);
       }
     }
@@ -1794,7 +1827,7 @@ function renderProgressionTable() {
         const td = document.createElement('td');
         td.className = 'prog-cell' + (isOvr ? ' is-override' : '');
         td.dataset.week = week; td.dataset.section = section; td.dataset.bp = bp; td.dataset.type = 'rep';
-        td.innerHTML = `<input type="range" class="prog-slider rep-slider" min="0" max="1" step="0.05" value="${val}"><input type="number" class="prog-num" min="0" max="1" step="0.05" value="${val}">`;
+        td.innerHTML = `<input type="number" class="prog-num" min="0" max="1" step="0.05" value="${val}">`;
         repRow.appendChild(td);
       }
     }
@@ -1810,36 +1843,30 @@ function renderProgressionTable() {
 
 function attachProgressionTableListeners() {
   const tbody = document.querySelector('#progressionTable tbody');
-  // Clone to remove existing listeners
   const fresh = tbody.cloneNode(true);
   tbody.parentNode.replaceChild(fresh, tbody);
-  fresh.addEventListener('input', e => {
+  fresh.addEventListener('change', e => {
     const target = e.target;
-    if (!target.classList.contains('prog-slider') && !target.classList.contains('prog-num')) return;
-    const cell = target.closest('.prog-cell');
+    if (!target.classList.contains('prog-num')) return;
+    const cell    = target.closest('.prog-cell');
     if (!cell) return;
     const week    = parseInt(cell.dataset.week);
     const section = cell.dataset.section;
     const bp      = cell.dataset.bp;
     const type    = cell.dataset.type;
     const value   = parseFloat(target.value);
-    // Sync sibling
-    const isSlider = target.classList.contains('prog-slider');
-    const sibling  = isSlider ? cell.querySelector('.prog-num') : cell.querySelector('.prog-slider');
-    if (sibling && parseFloat(sibling.value) !== value) sibling.value = value;
-    // Persist
+    const dsIdx   = BODY_PARTS.indexOf(bp);
+    const ptIdx   = (week - 1) * 2 + (section === 'A' ? 0 : 1);
     if (type === 'rpe') {
-      const def = state.rpeSchedule.defaults[bp] || 8.0;
-      if (value === def) removeRPEOverride(week, section, bp);
-      else setRPEOverride(week, section, bp, value);
+      setRPEOverride(week, section, bp, value);
       cell.classList.toggle('is-override', state.rpeSchedule.overrides[`${week}-${section}-${bp}`] !== undefined);
+      if (rpeChartInstance) { rpeChartInstance.data.datasets[dsIdx].data[ptIdx] = value; rpeChartInstance.update('none'); }
     } else {
-      const def = state.repProgression.defaults[bp] || 0.5;
-      if (value === def) removeRepPercentageOverride(week, section, bp);
-      else setRepPercentageOverride(week, section, bp, value);
+      setRepPercentageOverride(week, section, bp, value);
       cell.classList.toggle('is-override', state.repProgression.overrides[`${week}-${section}-${bp}`] !== undefined);
+      if (repChartInstance) { repChartInstance.data.datasets[dsIdx].data[ptIdx] = value; repChartInstance.update('none'); }
     }
-    updateProgressionCharts();
+    refreshLoadChart();
     if (!$('#page-today').hidden) renderToday();
   });
 }
