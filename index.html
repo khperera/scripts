@@ -122,10 +122,95 @@
     height: 100%; 
     cursor: pointer; 
   }
-  @media(min-width: 700px) { 
-    .grid-2 { grid-template-columns: 1fr 1fr; } 
-    .grid-3 { grid-template-columns: repeat(3, 1fr); } 
+  @media(min-width: 700px) {
+    .grid-2 { grid-template-columns: 1fr 1fr; }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
   }
+
+  /* ===== PROGRESSION TAB ===== */
+  .bp-toggle {
+    padding: 5px 14px;
+    border-radius: 999px;
+    border: 2px solid;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    background: transparent;
+    transition: background 0.15s, color 0.15s;
+  }
+  .bp-toggle.active { color: #0f1115 !important; }
+  .bp-toggle:not(.active) { opacity: 0.45; }
+
+  .prog-table { font-size: 12px; border-collapse: collapse; }
+  .prog-table th { font-size: 11px; color: var(--muted); padding: 4px 2px; white-space: nowrap; text-align: center; }
+  .prog-table td { padding: 2px; vertical-align: middle; }
+
+  .prog-bp-label {
+    font-size: 12px;
+    padding: 6px 8px;
+    border-right: 1px solid #262a33;
+    min-width: 90px;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .prog-cell {
+    padding: 3px 4px;
+    vertical-align: middle;
+    min-width: 82px;
+    text-align: center;
+  }
+  .prog-cell.is-override .prog-num { color: var(--good); font-weight: 700; }
+
+  .prog-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: #2a2f3a;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: block;
+    margin: 0 0 3px 0;
+  }
+  .prog-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid #0f1115;
+  }
+  .prog-slider::-moz-range-thumb {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid #0f1115;
+  }
+  .rpe-slider::-webkit-slider-thumb { background: #71a8ff; }
+  .rep-slider::-webkit-slider-thumb { background: #37d67a; }
+  .rpe-slider::-moz-range-thumb     { background: #71a8ff; }
+  .rep-slider::-moz-range-thumb     { background: #37d67a; }
+
+  .prog-num {
+    width: 52px;
+    padding: 2px 4px;
+    font-size: 11px;
+    text-align: center;
+    border-radius: 6px;
+    border: 1px solid #2a2f3a;
+    background: #0f1218;
+    color: var(--text);
+    display: block;
+    margin: 0 auto;
+  }
+  .prog-num:focus { outline: 1px solid var(--accent); }
+
+  .prog-separator td { padding: 4px 0; background: transparent; border-bottom: 1px solid #1c1f27; }
+
+  .prog-chart-wrap { position: relative; height: 230px; }
 </style>
 </head>
 <body>
@@ -138,8 +223,7 @@
     <button class="tab" data-page="exercises">Exercises</button>
     <button class="tab" data-page="history">History</button>
     <button class="tab" data-page="settings">Settings</button>
-    <button class="tab" data-page="rpe-schedule">RPE Schedule</button>
-    <button class="tab" data-page="rep-progression">Rep Progression</button>
+    <button class="tab" data-page="progression">Progression</button>
     <button class="tab" data-page="analytics">Analytics</button>
   </nav>
   <div style="margin-left: auto;" class="row">
@@ -287,127 +371,74 @@
     </div>
   </section>
 
-  <!-- RPE SCHEDULE -->
-  <section id="page-rpe-schedule" hidden>
+  <!-- PROGRESSION (merged RPE + Rep + Load) -->
+  <section id="page-progression" hidden>
     <div class="card">
-      <div class="row" style="justify-content: space-between; align-items: center;">
-        <h3>RPE Schedule by Week/Section/Body Part</h3>
-        <button onclick="resetRPESchedule()">Reset to Default</button>
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h3 style="margin:0;">Progression — RPE &amp; Rep Schedule</h3>
+        <button onclick="resetRPESchedule();resetRepProgressionSilent();renderProgression();">Reset All</button>
       </div>
-      <p class="tiny">Customize RPE targets for each body part by week and section (A/B). This overrides template RPE values.</p>
-      
-      <div class="grid grid-2" style="margin-bottom: 20px;">
+
+      <!-- Body part visibility toggles -->
+      <div id="progressionToggles" class="row" style="margin-bottom:16px;flex-wrap:wrap;gap:8px;"></div>
+
+      <!-- Quick presets -->
+      <div class="grid grid-2" style="margin-bottom:16px;">
         <div class="card">
-          <h4>Quick Presets</h4>
-          <div class="row">
+          <h4>RPE Presets</h4>
+          <div class="row" style="flex-wrap:wrap;gap:6px;">
             <button onclick="applyLinearProgression()">Linear (8→9.5)</button>
-            <button onclick="applyWaveProgression()">Wave (8→9→8.5→9.5)</button>
-            <button onclick="applyBlockProgression()">Block (2wk cycles)</button>
-            <button onclick="applyRandomProgression()">Random (8.0–10.0)</button>
+            <button onclick="applyWaveProgression()">Wave</button>
+            <button onclick="applyBlockProgression()">Block</button>
+            <button onclick="applyRandomProgression()">Random</button>
           </div>
         </div>
         <div class="card">
-          <h4>Add New Override</h4>
-          <div class="row">
-            <div><label>Week</label><select id="newWeek"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
-            <div><label>Section</label><select id="newSection"><option>A</option><option>B</option></select></div>
-            <div><label>Body Part</label><select id="newBodyPart"><option>CHEST</option><option>BACK</option><option>QUADS</option><option>HAMSTRINGS</option><option>SHOULDERS</option><option>ARMS</option></select></div>
-            <div><label>RPE</label><input id="newRPE" type="number" step="0.5" min="6" max="10" value="8.0"></div>
-            <div><label>&nbsp;</label><button onclick="addRPEOverride()">Add</button></div>
+          <h4>Rep % Presets</h4>
+          <div class="row" style="flex-wrap:wrap;gap:6px;">
+            <button onclick="applyLinearRepProgression()">Linear (1→0)</button>
+            <button onclick="applyWaveRepProgression()">Wave</button>
+            <button onclick="applyBlockRepProgression()">Block</button>
+            <button onclick="applyRandomRepProgression()">Random</button>
           </div>
         </div>
-      </div>
-
-      <div class="card">
-        <h4>Current RPE Schedule</h4>
-        <div style="overflow-x: auto;">
-          <table id="rpeScheduleTable">
-            <thead>
-              <tr>
-                <th>Body Part</th>
-                <th>W1-A</th><th>W1-B</th>
-                <th>W2-A</th><th>W2-B</th>
-                <th>W3-A</th><th>W3-B</th>
-                <th>W4-A</th><th>W4-B</th>
-                <th>W5-A</th><th>W5-B</th>
-                <th>W6-A</th><th>W6-B</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card">
-        <h4>Individual Overrides</h4>
-        <table id="rpeOverrideTable">
-          <thead>
-            <tr><th>Week</th><th>Section</th><th>Body Part</th><th>RPE</th><th>Actions</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
       </div>
     </div>
-  </section>
 
-  <!-- REP PROGRESSION -->
-  <section id="page-rep-progression" hidden>
+    <!-- RPE Chart -->
     <div class="card">
-      <div class="row" style="justify-content: space-between; align-items: center;">
-        <h3>Rep Progression by Week/Section/Body Part</h3>
-        <button onclick="resetRepProgression()">Reset to Default</button>
-      </div>
-      <p class="tiny">Set rep percentages (0.0-1.0) for each body part by week and section. Reps are calculated as: percentage × (maxReps - minReps) + minReps.</p>
-      
-      <div class="grid grid-2" style="margin-bottom: 20px;">
-        <div class="card">
-          <h4>Quick Presets</h4>
-          <div class="row">
-            <button onclick="applyLinearRepProgression()">Linear (1.0→0.0)</button>
-            <button onclick="applyWaveRepProgression()">Wave (high→low→mid)</button>
-            <button onclick="applyBlockRepProgression()">Block (2wk cycles)</button>
-            <button onclick="applyRandomRepProgression()">Rep (random cycles)</button>
+      <h4>RPE by Week / Session</h4>
+      <div class="prog-chart-wrap"><canvas id="rpeChart"></canvas></div>
+    </div>
 
-            
-          </div>
-        </div>
-        <div class="card">
-          <h4>Add New Override</h4>
-          <div class="row">
-            <div><label>Week</label><select id="newRepWeek"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
-            <div><label>Section</label><select id="newRepSection"><option>A</option><option>B</option></select></div>
-            <div><label>Body Part</label><select id="newRepBodyPart"><option>CHEST</option><option>BACK</option><option>QUADS</option><option>HAMSTRINGS</option><option>SHOULDERS</option><option>ARMS</option></select></div>
-            <div><label>Percentage</label><input id="newRepPercentage" type="number" step="0.1" min="0" max="1" value="0.5"></div>
-            <div><label>&nbsp;</label><button onclick="addRepPercentageOverride()">Add</button></div>
-          </div>
-        </div>
-      </div>
+    <!-- Rep Chart -->
+    <div class="card">
+      <h4>Rep % by Week / Session</h4>
+      <div class="prog-chart-wrap"><canvas id="repChart"></canvas></div>
+    </div>
 
-      <div class="card">
-        <h4>Current Rep Progression Schedule</h4>
-        <div style="overflow-x: auto;">
-          <table id="repProgressionTable">
-            <thead>
-              <tr>
-                <th>Body Part</th>
-                <th>W1-A</th><th>W1-B</th>
-                <th>W2-A</th><th>W2-B</th>
-                <th>W3-A</th><th>W3-B</th>
-                <th>W4-A</th><th>W4-B</th>
-                <th>W5-A</th><th>W5-B</th>
-                <th>W6-A</th><th>W6-B</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
+    <!-- Load Chart -->
+    <div class="card">
+      <h4>Projected Load (% of Training Max)</h4>
+      <p class="tiny">f(RPE, reps) via Brzycki formula — rep range 3–12 based on rep %.</p>
+      <div class="prog-chart-wrap"><canvas id="loadChart"></canvas></div>
+    </div>
 
-      <div class="card">
-        <h4>Individual Overrides</h4>
-        <table id="repOverrideTable">
+    <!-- Combined slider table -->
+    <div class="card">
+      <h4>RPE &amp; Rep % Schedule — Edit Values</h4>
+      <div style="overflow-x:auto;">
+        <table id="progressionTable" class="prog-table">
           <thead>
-            <tr><th>Week</th><th>Section</th><th>Body Part</th><th>Percentage</th><th>Actions</th></tr>
+            <tr>
+              <th style="min-width:100px;">Body Part</th>
+              <th>W1-A</th><th>W1-B</th>
+              <th>W2-A</th><th>W2-B</th>
+              <th>W3-A</th><th>W3-B</th>
+              <th>W4-A</th><th>W4-B</th>
+              <th>W5-A</th><th>W5-B</th>
+              <th>W6-A</th><th>W6-B</th>
+            </tr>
           </thead>
           <tbody></tbody>
         </table>
@@ -492,6 +523,21 @@ const RPE_TABLE = {
 
 // Body part categories
 const BODY_PARTS = ['CHEST', 'BACK', 'QUADS', 'HAMSTRINGS', 'SHOULDERS', 'ARMS'];
+
+const PROGRESSION_COLORS = {
+  CHEST:      '#71a8ff',
+  BACK:       '#37d67a',
+  QUADS:      '#ff8c42',
+  HAMSTRINGS: '#ff5f57',
+  SHOULDERS:  '#c084fc',
+  ARMS:       '#ffd166',
+};
+
+const PROG_X_LABELS = [
+  'W1-A','W1-B','W2-A','W2-B',
+  'W3-A','W3-B','W4-A','W4-B',
+  'W5-A','W5-B','W6-A','W6-B'
+];
 
 // Default state
 const DEFAULT_STATE = {
@@ -639,12 +685,8 @@ function calculateTargetReps(exerciseId, week, section, bodyPart) {
 }
 
 function resetRepProgression() {
-  if (confirm('Reset rep progression to defaults? This will remove all custom overrides.')) {
-    state.repProgression = JSON.parse(JSON.stringify(DEFAULT_STATE.repProgression));
-    persist();
-    renderRepProgression();
-    alert('Rep progression reset to defaults.');
-  }
+  state.repProgression = JSON.parse(JSON.stringify(DEFAULT_STATE.repProgression));
+  persist();
 }
 
 /* ---------- RPE Schedule Functions ---------- */
@@ -684,7 +726,7 @@ function applyLinearProgression() {
       }
     }
   }
-  renderRPESchedule();
+  renderProgression();
   alert('Applied Linear Progression (8.0 → 9.5)');
 }
 
@@ -700,7 +742,7 @@ function applyWaveProgression() {
       }
     }
   }
-  renderRPESchedule();
+  renderProgression();
   alert('Applied Wave Progression');
 }
 
@@ -717,7 +759,7 @@ function applyRandomProgression() {
       }
     }
   }
-  renderRPESchedule();
+  renderProgression();
   alert('Applied Random Progression');
 }
 
@@ -733,17 +775,13 @@ function applyBlockProgression() {
       }
     }
   }
-  renderRPESchedule();
+  renderProgression();
   alert('Applied Block Progression (2-week blocks)');
 }
 
 function resetRPESchedule() {
-  if (confirm('Reset RPE schedule to defaults? This will remove all custom overrides.')) {
-    state.rpeSchedule = JSON.parse(JSON.stringify(DEFAULT_STATE.rpeSchedule));
-    persist();
-    renderRPESchedule();
-    alert('RPE schedule reset to defaults.');
-  }
+  state.rpeSchedule = JSON.parse(JSON.stringify(DEFAULT_STATE.rpeSchedule));
+  persist();
 }
 
 function applyLinearRepProgression() {
@@ -758,7 +796,7 @@ function applyLinearRepProgression() {
       }
     }
   }
-  renderRepProgression();
+  renderProgression();
   alert('Applied Linear Rep Progression (1.0 → 0.0)');
 }
 
@@ -774,7 +812,7 @@ function applyWaveRepProgression() {
       }
     }
   }
-  renderRepProgression();
+  renderProgression();
   alert('Applied Wave Rep Progression');
 }
 
@@ -790,7 +828,7 @@ function applyBlockRepProgression() {
       }
     }
   }
-  renderRepProgression();
+  renderProgression();
   alert('Applied Block Rep Progression (2-week blocks)');
 }
 
@@ -806,7 +844,7 @@ function applyRandomRepProgression() {
       }
     }
   }
-  renderRepProgression();
+  renderProgression();
   alert('Applied Random Rep Progression');
 }
 
@@ -1042,6 +1080,9 @@ function renderTabs() {
       hamburgerBtn.setAttribute('aria-expanded', 'false');
       hamburgerBtn.innerHTML = '&#9776;';
 
+      // Destroy progression charts when leaving that tab (canvas about to be hidden)
+      if (!$('#page-progression').hidden) destroyProgressionCharts();
+
       // Show corresponding page
       const page = button.dataset.page;
       document.querySelectorAll('main section').forEach(section => section.hidden = true);
@@ -1054,8 +1095,7 @@ function renderTabs() {
         case 'exercises': renderExercises(); break;
         case 'history': renderHistory(); break;
         case 'settings': renderSettings(); break;
-        case 'rpe-schedule': renderRPESchedule(); break;
-        case 'rep-progression': renderRepProgression(); break;
+        case 'progression': renderProgression(); break;
         case 'analytics': renderAnalytics(); break;
       }
     };
@@ -1319,60 +1359,10 @@ function renderSettings() {
   $('#downLower').value = state.settings.downLower;
 }
 
-function renderRepProgression() {
-  renderRepProgressionTable();
-  renderRepOverrideTable();
-}
-
-function renderRepProgressionTable() {
-  const tbody = $('#repProgressionTable tbody');
-  tbody.innerHTML = '';
-  
-  BODY_PARTS.forEach(bodyPart => {
-    const row = document.createElement('tr');
-    let html = `<td><strong>${bodyPart}</strong></td>`;
-    
-    for (let week = 1; week <= 6; week++) {
-      for (const section of ['A', 'B']) {
-        const percentage = getRepPercentageForExercise(week, section, bodyPart);
-        const isOverride = state.repProgression.overrides[`${week}-${section}-${bodyPart}`] !== undefined;
-        html += `<td class="${isOverride ? 'good' : ''}" style="text-align: center;">
-          <input type="number" step="0.1" min="0" max="1" value="${percentage}" 
-                 style="width: 60px; text-align: center; ${isOverride ? 'font-weight: bold;' : ''}"
-                 onchange="updateRepPercentageFromTable(${week}, '${section}', '${bodyPart}', this.value)">
-        </td>`;
-      }
-    }
-    
-    row.innerHTML = html;
-    tbody.appendChild(row);
-  });
-}
-
-function renderRepOverrideTable() {
-  const tbody = $('#repOverrideTable tbody');
-  tbody.innerHTML = '';
-  
-  const overrides = Object.entries(state.repProgression.overrides).sort();
-  
-  if (overrides.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="tiny" style="text-align: center;">No custom overrides set. Using default rep percentages.</td></tr>';
-    return;
-  }
-  
-  overrides.forEach(([key, percentage]) => {
-    const [week, section, bodyPart] = key.split('-');
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${week}</td>
-      <td>${section}</td>
-      <td>${bodyPart}</td>
-      <td>${percentage}</td>
-      <td><button onclick="removeRepPercentageOverride('${week}', '${section}', '${bodyPart}'); renderRepProgression();">Remove</button></td>
-    `;
-    tbody.appendChild(row);
-  });
-}
+// Legacy stubs — these tables were merged into the Progression tab
+function renderRepProgression() { if (!$('#page-progression').hidden) renderProgression(); }
+function renderRepProgressionTable() {}
+function renderRepOverrideTable() {}
 
 function updateRepPercentageFromTable(week, section, bodyPart, value) {
   const percentage = Number(value);
@@ -1386,69 +1376,16 @@ function updateRepPercentageFromTable(week, section, bodyPart, value) {
     setRepPercentageOverride(week, section, bodyPart, percentage);
   }
   
-  // Re-render to update styling
-  renderRepProgression();
-  
-  // Update today view if it's currently showing
+  if (!$('#page-progression').hidden) renderProgression();
   if (!$('#page-today').hidden) {
     renderToday();
   }
 }
 
-function renderRPESchedule() {
-  renderRPEScheduleTable();
-  renderRPEOverrideTable();
-}
-
-function renderRPEScheduleTable() {
-  const tbody = $('#rpeScheduleTable tbody');
-  tbody.innerHTML = '';
-  
-  BODY_PARTS.forEach(bodyPart => {
-    const row = document.createElement('tr');
-    let html = `<td><strong>${bodyPart}</strong></td>`;
-    
-    for (let week = 1; week <= 6; week++) {
-      for (const section of ['A', 'B']) {
-        const rpe = getRPEForExercise(week, section, bodyPart);
-        const isOverride = state.rpeSchedule.overrides[`${week}-${section}-${bodyPart}`] !== undefined;
-        html += `<td class="${isOverride ? 'good' : ''}" style="text-align: center;">
-          <input type="number" step="0.5" min="6" max="10" value="${rpe}" 
-                 style="width: 60px; text-align: center; ${isOverride ? 'font-weight: bold;' : ''}"
-                 onchange="updateRPEFromTable(${week}, '${section}', '${bodyPart}', this.value)">
-        </td>`;
-      }
-    }
-    
-    row.innerHTML = html;
-    tbody.appendChild(row);
-  });
-}
-
-function renderRPEOverrideTable() {
-  const tbody = $('#rpeOverrideTable tbody');
-  tbody.innerHTML = '';
-  
-  const overrides = Object.entries(state.rpeSchedule.overrides).sort();
-  
-  if (overrides.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="tiny" style="text-align: center;">No custom overrides set. Using default RPE values.</td></tr>';
-    return;
-  }
-  
-  overrides.forEach(([key, rpe]) => {
-    const [week, section, bodyPart] = key.split('-');
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${week}</td>
-      <td>${section}</td>
-      <td>${bodyPart}</td>
-      <td>${rpe}</td>
-      <td><button onclick="removeRPEOverride('${week}', '${section}', '${bodyPart}'); renderRPESchedule();">Remove</button></td>
-    `;
-    tbody.appendChild(row);
-  });
-}
+// Legacy stubs — these tables were merged into the Progression tab
+function renderRPESchedule() { if (!$('#page-progression').hidden) renderProgression(); }
+function renderRPEScheduleTable() {}
+function renderRPEOverrideTable() {}
 
 function updateRPEFromTable(week, section, bodyPart, value) {
   const rpe = Number(value);
@@ -1462,13 +1399,8 @@ function updateRPEFromTable(week, section, bodyPart, value) {
     setRPEOverride(week, section, bodyPart, rpe);
   }
   
-  // Re-render to update styling
-  renderRPESchedule();
-  
-  // Update today view if it's currently showing
-  if (!$('#page-today').hidden) {
-    renderToday();
-  }
+  if (!$('#page-progression').hidden) renderProgression();
+  if (!$('#page-today').hidden) renderToday();
 }
 
 /* ---------- Action Functions ---------- */
@@ -1529,46 +1461,8 @@ function addExercise() {
   renderTemplates();
 }
 
-function addRPEOverride() {
-  const week = $('#newWeek').value;
-  const section = $('#newSection').value;
-  const bodyPart = $('#newBodyPart').value;
-  const rpe = Number($('#newRPE').value);
-  
-  if (!week || !section || !bodyPart || !rpe) {
-    alert('Please fill in all fields');
-    return;
-  }
-  
-  setRPEOverride(week, section, bodyPart, rpe);
-  renderRPESchedule();
-  
-  // Clear form
-  $('#newRPE').value = '8.0';
-}
-
-function addRepPercentageOverride() {
-  const week = $('#newRepWeek').value;
-  const section = $('#newRepSection').value;
-  const bodyPart = $('#newRepBodyPart').value;
-  const percentage = Number($('#newRepPercentage').value);
-  
-  if (!week || !section || !bodyPart || isNaN(percentage)) {
-    alert('Please fill in all fields');
-    return;
-  }
-  
-  if (percentage < 0 || percentage > 1) {
-    alert('Percentage must be between 0.0 and 1.0');
-    return;
-  }
-  
-  setRepPercentageOverride(week, section, bodyPart, percentage);
-  renderRepProgression();
-  
-  // Clear form
-  $('#newRepPercentage').value = '0.5';
-}
+function addRPEOverride() { /* removed with old UI */ }
+function addRepPercentageOverride() { /* removed with old UI */ }
 
 function saveSettings() {
   state.unit = $('#unit').value;
@@ -1637,8 +1531,7 @@ async function importData(event) {
       renderTemplates();
       renderToday();
       renderHistory();
-      renderRPESchedule();
-      renderRepProgression();
+      if (!$('#page-progression').hidden) renderProgression();
       
       alert('Data imported successfully!');
     } else {
@@ -1721,8 +1614,250 @@ function initialize() {
   renderExercises();
   renderHistory();
   renderSettings();
-  renderRPESchedule();
-  renderRepProgression();
+  // Progression tab renders on demand (charts need visible canvas)
+}
+
+/* ---------- Progression Tab ---------- */
+let rpeChartInstance  = null;
+let repChartInstance  = null;
+let loadChartInstance = null;
+const progressionVisibility = {};
+BODY_PARTS.forEach(bp => { progressionVisibility[bp] = true; });
+
+/**
+ * Brzycki-based load factor: rep% maps to actual reps (3–12 range),
+ * then RIR = 10 - RPE is added for effective total reps.
+ */
+function computeLoadFactor(rpe, repPct) {
+  const reps = repPct * 9 + 3;
+  const effectiveReps = reps + (10 - rpe);
+  const raw = 1 / (1.0278 - 0.0278 * effectiveReps);
+  return Math.min(1, Math.max(0, raw));
+}
+
+function buildProgressionDatasets(type) {
+  return BODY_PARTS.map(bp => {
+    const color = PROGRESSION_COLORS[bp];
+    const data = [];
+    for (let week = 1; week <= 6; week++) {
+      for (const section of ['A', 'B']) {
+        const rpe    = getRPEForExercise(week, section, bp);
+        const repPct = getRepPercentageForExercise(week, section, bp);
+        let value;
+        if (type === 'rpe')       value = rpe;
+        else if (type === 'rep')  value = repPct;
+        else                      value = computeLoadFactor(rpe, repPct);
+        data.push(parseFloat(value.toFixed(3)));
+      }
+    }
+    return {
+      label: bp,
+      data,
+      borderColor: color,
+      backgroundColor: color + '22',
+      pointBackgroundColor: color,
+      pointRadius: 4,
+      pointHoverRadius: 7,
+      tension: 0.3,
+      fill: false,
+      hidden: !progressionVisibility[bp],
+    };
+  });
+}
+
+function progressionChartOptions(yLabel, yMin, yMax, fmtFn) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: fmtFn || (c => `${c.dataset.label}: ${c.parsed.y}`) } }
+    },
+    scales: {
+      x: { ticks: { color: '#8b95a7', font: { size: 11 } }, grid: { color: '#1e2230' } },
+      y: {
+        min: yMin, max: yMax,
+        ticks: { color: '#8b95a7', font: { size: 11 } },
+        grid:  { color: '#1e2230' },
+        title: { display: true, text: yLabel, color: '#8b95a7', font: { size: 11 } }
+      }
+    }
+  };
+}
+
+function destroyProgressionCharts() {
+  if (rpeChartInstance)  { rpeChartInstance.destroy();  rpeChartInstance  = null; }
+  if (repChartInstance)  { repChartInstance.destroy();  repChartInstance  = null; }
+  if (loadChartInstance) { loadChartInstance.destroy(); loadChartInstance = null; }
+}
+
+function initProgressionCharts() {
+  destroyProgressionCharts();
+  rpeChartInstance = new Chart($('#rpeChart').getContext('2d'), {
+    type: 'line',
+    data: { labels: PROG_X_LABELS, datasets: buildProgressionDatasets('rpe') },
+    options: progressionChartOptions('RPE', 5, 10, c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}`)
+  });
+  repChartInstance = new Chart($('#repChart').getContext('2d'), {
+    type: 'line',
+    data: { labels: PROG_X_LABELS, datasets: buildProgressionDatasets('rep') },
+    options: progressionChartOptions('Rep %', 0, 1, c => `${c.dataset.label}: ${(c.parsed.y * 100).toFixed(0)}%`)
+  });
+  loadChartInstance = new Chart($('#loadChart').getContext('2d'), {
+    type: 'line',
+    data: { labels: PROG_X_LABELS, datasets: buildProgressionDatasets('load') },
+    options: progressionChartOptions('Load %TM', 0.5, 1.0, c => `${c.dataset.label}: ${(c.parsed.y * 100).toFixed(1)}%`)
+  });
+}
+
+function updateProgressionCharts() {
+  if (!rpeChartInstance) return;
+  const types = ['rpe', 'rep', 'load'];
+  const instances = [rpeChartInstance, repChartInstance, loadChartInstance];
+  types.forEach((type, ci) => {
+    const datasets = buildProgressionDatasets(type);
+    instances[ci].data.datasets.forEach((ds, i) => {
+      ds.data   = datasets[i].data;
+      ds.hidden = !progressionVisibility[datasets[i].label];
+    });
+    instances[ci].update('none');
+  });
+}
+
+function renderProgressionToggles() {
+  const container = $('#progressionToggles');
+  container.innerHTML = '';
+  BODY_PARTS.forEach(bp => {
+    const color   = PROGRESSION_COLORS[bp];
+    const isActive = progressionVisibility[bp];
+    const btn = document.createElement('button');
+    btn.className   = 'bp-toggle' + (isActive ? ' active' : '');
+    btn.textContent = bp;
+    btn.style.borderColor  = color;
+    btn.style.background   = isActive ? color : 'transparent';
+    btn.onclick = () => {
+      progressionVisibility[bp] = !progressionVisibility[bp];
+      renderProgressionToggles();
+      // Update chart dataset visibility in-place
+      [rpeChartInstance, repChartInstance, loadChartInstance].forEach(chart => {
+        if (!chart) return;
+        const ds = chart.data.datasets.find(d => d.label === bp);
+        if (ds) ds.hidden = !progressionVisibility[bp];
+        chart.update('none');
+      });
+      // Toggle table row visibility
+      document.querySelectorAll(`tr.prog-row-rpe[data-bp="${bp}"], tr.prog-row-rep[data-bp="${bp}"]`)
+        .forEach(row => { row.style.display = progressionVisibility[bp] ? '' : 'none'; });
+    };
+    container.appendChild(btn);
+  });
+}
+
+function renderProgressionTable() {
+  const tbody = document.querySelector('#progressionTable tbody');
+  tbody.innerHTML = '';
+  BODY_PARTS.forEach(bp => {
+    const color = PROGRESSION_COLORS[bp];
+    // RPE row
+    const rpeRow = document.createElement('tr');
+    rpeRow.className = 'prog-row-rpe';
+    rpeRow.dataset.bp = bp;
+    if (!progressionVisibility[bp]) rpeRow.style.display = 'none';
+    const labelCell = document.createElement('td');
+    labelCell.className = 'prog-bp-label';
+    labelCell.rowSpan = 2;
+    labelCell.innerHTML = `<strong style="color:${color};">${bp}</strong><div class="tiny" style="margin-top:3px;color:#71a8ff;">RPE ↑</div><div class="tiny" style="color:#37d67a;">Rep% ↓</div>`;
+    rpeRow.appendChild(labelCell);
+    for (let week = 1; week <= 6; week++) {
+      for (const section of ['A', 'B']) {
+        const val  = getRPEForExercise(week, section, bp);
+        const isOvr = state.rpeSchedule.overrides[`${week}-${section}-${bp}`] !== undefined;
+        const td = document.createElement('td');
+        td.className = 'prog-cell' + (isOvr ? ' is-override' : '');
+        td.dataset.week = week; td.dataset.section = section; td.dataset.bp = bp; td.dataset.type = 'rpe';
+        td.innerHTML = `<input type="range" class="prog-slider rpe-slider" min="5" max="10" step="0.5" value="${val}"><input type="number" class="prog-num" min="5" max="10" step="0.5" value="${val}">`;
+        rpeRow.appendChild(td);
+      }
+    }
+    tbody.appendChild(rpeRow);
+    // Rep% row
+    const repRow = document.createElement('tr');
+    repRow.className = 'prog-row-rep';
+    repRow.dataset.bp = bp;
+    if (!progressionVisibility[bp]) repRow.style.display = 'none';
+    for (let week = 1; week <= 6; week++) {
+      for (const section of ['A', 'B']) {
+        const val  = getRepPercentageForExercise(week, section, bp);
+        const isOvr = state.repProgression.overrides[`${week}-${section}-${bp}`] !== undefined;
+        const td = document.createElement('td');
+        td.className = 'prog-cell' + (isOvr ? ' is-override' : '');
+        td.dataset.week = week; td.dataset.section = section; td.dataset.bp = bp; td.dataset.type = 'rep';
+        td.innerHTML = `<input type="range" class="prog-slider rep-slider" min="0" max="1" step="0.05" value="${val}"><input type="number" class="prog-num" min="0" max="1" step="0.05" value="${val}">`;
+        repRow.appendChild(td);
+      }
+    }
+    tbody.appendChild(repRow);
+    // Separator
+    const sep = document.createElement('tr');
+    sep.className = 'prog-separator';
+    sep.innerHTML = '<td colspan="13"></td>';
+    tbody.appendChild(sep);
+  });
+  attachProgressionTableListeners();
+}
+
+function attachProgressionTableListeners() {
+  const tbody = document.querySelector('#progressionTable tbody');
+  // Clone to remove existing listeners
+  const fresh = tbody.cloneNode(true);
+  tbody.parentNode.replaceChild(fresh, tbody);
+  fresh.addEventListener('input', e => {
+    const target = e.target;
+    if (!target.classList.contains('prog-slider') && !target.classList.contains('prog-num')) return;
+    const cell = target.closest('.prog-cell');
+    if (!cell) return;
+    const week    = parseInt(cell.dataset.week);
+    const section = cell.dataset.section;
+    const bp      = cell.dataset.bp;
+    const type    = cell.dataset.type;
+    const value   = parseFloat(target.value);
+    // Sync sibling
+    const isSlider = target.classList.contains('prog-slider');
+    const sibling  = isSlider ? cell.querySelector('.prog-num') : cell.querySelector('.prog-slider');
+    if (sibling && parseFloat(sibling.value) !== value) sibling.value = value;
+    // Persist
+    if (type === 'rpe') {
+      const def = state.rpeSchedule.defaults[bp] || 8.0;
+      if (value === def) removeRPEOverride(week, section, bp);
+      else setRPEOverride(week, section, bp, value);
+      cell.classList.toggle('is-override', state.rpeSchedule.overrides[`${week}-${section}-${bp}`] !== undefined);
+    } else {
+      const def = state.repProgression.defaults[bp] || 0.5;
+      if (value === def) removeRepPercentageOverride(week, section, bp);
+      else setRepPercentageOverride(week, section, bp, value);
+      cell.classList.toggle('is-override', state.repProgression.overrides[`${week}-${section}-${bp}`] !== undefined);
+    }
+    updateProgressionCharts();
+    if (!$('#page-today').hidden) renderToday();
+  });
+}
+
+function renderProgression() {
+  const isFirst = (rpeChartInstance === null);
+  renderProgressionToggles();
+  renderProgressionTable();
+  if (isFirst) {
+    requestAnimationFrame(() => initProgressionCharts());
+  } else {
+    updateProgressionCharts();
+  }
+}
+
+function resetRepProgressionSilent() {
+  state.repProgression = JSON.parse(JSON.stringify(DEFAULT_STATE.repProgression));
+  persist();
 }
 
 /* ---------- Analytics ---------- */
