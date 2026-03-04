@@ -384,7 +384,7 @@
       <div id="progressionToggles" class="row" style="margin-bottom:16px;flex-wrap:wrap;gap:8px;"></div>
 
       <!-- Quick presets -->
-      <div class="grid grid-2" style="margin-bottom:16px;">
+      <!-- <div class="grid grid-2" style="margin-bottom:16px;">
         <div class="card">
           <h4>RPE Presets</h4>
           <div class="row" style="flex-wrap:wrap;gap:6px;">
@@ -403,7 +403,7 @@
             <button onclick="applyRandomRepProgression()">Random</button>
           </div>
         </div>
-      </div>
+      </div> -->
     </div>
 
     <!-- RPE Chart -->
@@ -444,6 +444,31 @@
           <tbody></tbody>
         </table>
       </div>
+
+        <div class="grid grid-2" style="margin-bottom:16px;">
+          <div class="card">
+            <h4>RPE Presets</h4>
+            <div class="row" style="flex-wrap:wrap;gap:6px;">
+              <button onclick="applyLinearProgression()">Linear (8→9.5)</button>
+              <button onclick="applyWaveProgression()">Wave</button>
+              <button onclick="applyBlockProgression()">Block</button>
+              <button onclick="applyRandomProgression()">Random</button>
+            </div>
+          </div>
+          <div class="card">
+            <h4>Rep % Presets</h4>
+            <div class="row" style="flex-wrap:wrap;gap:6px;">
+              <button onclick="applyLinearRepProgression()">Linear (1→0)</button>
+              <button onclick="applyWaveRepProgression()">Wave</button>
+              <button onclick="applyBlockRepProgression()">Block</button>
+              <button onclick="applyRandomRepProgression()">Random</button>
+            </div>
+          </div>
+        </div>
+
+
+
+
     </div>
   </section>
   <!-- ANALYTICS -->
