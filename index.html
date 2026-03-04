@@ -420,8 +420,8 @@
 
     <!-- Load Chart -->
     <div class="card">
-      <h4>Projected Load (% of Training Max)</h4>
-      <p class="tiny">f(RPE, reps) via Brzycki formula — rep range 3–12 based on rep %.</p>
+      <h4>Felt Load (% of 1RM)</h4>
+      <p class="tiny">Actual load / 1RM via Brzycki — rep range 3–12 based on rep %.</p>
       <div class="prog-chart-wrap"><canvas id="loadChart"></canvas></div>
     </div>
 
@@ -1627,13 +1627,13 @@ const progressionVisibility = {};
 BODY_PARTS.forEach(bp => { progressionVisibility[bp] = true; });
 
 /**
- * Brzycki-based load factor: rep% maps to actual reps (3–12 range),
- * then RIR = 10 - RPE is added for effective total reps.
+ * Felt load: actual load / 1RM.
+ * rep% maps to prescribed reps (3–12 range), then Brzycki gives W/1RM directly.
+ * RIR is not included — it represents unused capacity, not load on the bar.
  */
 function computeLoadFactor(rpe, repPct) {
   const reps = repPct * 9 + 3;
-  const effectiveReps = reps + (10 - rpe);
-  const raw = 1 / (1.0278 - 0.0278 * effectiveReps);
+  const raw = 1.0278 - 0.0278 * reps;
   return Math.min(1, Math.max(0, raw));
 }
 
@@ -1737,7 +1737,7 @@ function initProgressionCharts() {
   loadChartInstance = new Chart($('#loadChart').getContext('2d'), {
     type: 'line',
     data: { labels: PROG_X_LABELS, datasets: buildProgressionDatasets('load') },
-    options: progressionChartOptions('Load %TM', 0.5, 1.0, c => `${c.dataset.label}: ${(c.parsed.y * 100).toFixed(1)}%`),
+    options: progressionChartOptions('Felt Load %1RM', 0.5, 1.0, c => `${c.dataset.label}: ${(c.parsed.y * 100).toFixed(1)}%`),
   });
 }
 
