@@ -211,6 +211,7 @@
   .prog-separator td { padding: 4px 0; background: transparent; border-bottom: 1px solid #1c1f27; }
 
   .prog-chart-wrap { position: relative; height: 230px; }
+  .prog-chart-wrap canvas { cursor: ns-resize; }
 </style>
 </head>
 <body>
@@ -407,13 +408,13 @@
 
     <!-- RPE Chart -->
     <div class="card">
-      <h4>RPE by Week / Session</h4>
+      <h4>RPE by Week / Session <span class="tiny" style="font-weight:normal;"> — drag points to edit</span></h4>
       <div class="prog-chart-wrap"><canvas id="rpeChart"></canvas></div>
     </div>
 
     <!-- Rep Chart -->
     <div class="card">
-      <h4>Rep % by Week / Session</h4>
+      <h4>Rep % by Week / Session <span class="tiny" style="font-weight:normal;"> — drag points to edit</span></h4>
       <div class="prog-chart-wrap"><canvas id="repChart"></canvas></div>
     </div>
 
@@ -507,6 +508,7 @@
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-dragdata@2.2.4/dist/chartjs-plugin-dragdata.min.js"></script>
 <script>
 /* ---------- Constants and State ---------- */
 const STORE_KEY = 'lifttracker_v1';
@@ -1695,20 +1697,47 @@ function destroyProgressionCharts() {
 
 function initProgressionCharts() {
   destroyProgressionCharts();
+
+  const rpeOpts = progressionChartOptions('RPE', 5, 10, c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}`);
+  rpeOpts.plugins.dragData = {
+    round: 1,
+    showTooltip: true,
+    dragX: false,
+    onDragStart: (e, datasetIndex) => {
+      const bp = BODY_PARTS[datasetIndex];
+      return bp && progressionVisibility[bp] ? undefined : false;
+    },
+    onDrag: (e, datasetIndex, index, value) => Math.min(10, Math.max(5, value)),
+    onDragEnd: (e, datasetIndex, index, value) => handleProgressionDrag('rpe', datasetIndex, index, value),
+  };
   rpeChartInstance = new Chart($('#rpeChart').getContext('2d'), {
     type: 'line',
     data: { labels: PROG_X_LABELS, datasets: buildProgressionDatasets('rpe') },
-    options: progressionChartOptions('RPE', 5, 10, c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}`)
+    options: rpeOpts,
   });
+
+  const repOpts = progressionChartOptions('Rep %', 0, 1, c => `${c.dataset.label}: ${(c.parsed.y * 100).toFixed(0)}%`);
+  repOpts.plugins.dragData = {
+    round: 2,
+    showTooltip: true,
+    dragX: false,
+    onDragStart: (e, datasetIndex) => {
+      const bp = BODY_PARTS[datasetIndex];
+      return bp && progressionVisibility[bp] ? undefined : false;
+    },
+    onDrag: (e, datasetIndex, index, value) => Math.min(1, Math.max(0, value)),
+    onDragEnd: (e, datasetIndex, index, value) => handleProgressionDrag('rep', datasetIndex, index, value),
+  };
   repChartInstance = new Chart($('#repChart').getContext('2d'), {
     type: 'line',
     data: { labels: PROG_X_LABELS, datasets: buildProgressionDatasets('rep') },
-    options: progressionChartOptions('Rep %', 0, 1, c => `${c.dataset.label}: ${(c.parsed.y * 100).toFixed(0)}%`)
+    options: repOpts,
   });
+
   loadChartInstance = new Chart($('#loadChart').getContext('2d'), {
     type: 'line',
     data: { labels: PROG_X_LABELS, datasets: buildProgressionDatasets('load') },
-    options: progressionChartOptions('Load %TM', 0.5, 1.0, c => `${c.dataset.label}: ${(c.parsed.y * 100).toFixed(1)}%`)
+    options: progressionChartOptions('Load %TM', 0.5, 1.0, c => `${c.dataset.label}: ${(c.parsed.y * 100).toFixed(1)}%`),
   });
 }
 
@@ -1724,6 +1753,45 @@ function updateProgressionCharts() {
     });
     instances[ci].update('none');
   });
+}
+
+function handleProgressionDrag(type, datasetIndex, dataIndex, value) {
+  const bp = BODY_PARTS[datasetIndex];
+  if (!bp) return;
+  const week    = Math.floor(dataIndex / 2) + 1;
+  const section = dataIndex % 2 === 0 ? 'A' : 'B';
+
+  if (type === 'rpe') {
+    const snapped = Math.round(Math.min(10, Math.max(5, value)) * 2) / 2;
+    const def = state.rpeSchedule.defaults[bp] || 8.0;
+    if (snapped === def) removeRPEOverride(week, section, bp);
+    else setRPEOverride(week, section, bp, snapped);
+  } else {
+    const snapped = Math.round(Math.min(1, Math.max(0, value)) * 20) / 20;
+    const def = state.repProgression.defaults[bp] || 0.5;
+    if (snapped === def) removeRepPercentageOverride(week, section, bp);
+    else setRepPercentageOverride(week, section, bp, snapped);
+  }
+
+  // Sync the number input in the table cell
+  const cell = document.querySelector(`.prog-cell[data-week="${week}"][data-section="${section}"][data-bp="${bp}"][data-type="${type}"]`);
+  if (cell) {
+    const numInput = cell.querySelector('.prog-num');
+    if (numInput) {
+      numInput.value = type === 'rpe'
+        ? getRPEForExercise(week, section, bp)
+        : getRepPercentageForExercise(week, section, bp);
+    }
+    const key = `${week}-${section}-${bp}`;
+    const isOvr = type === 'rpe'
+      ? state.rpeSchedule.overrides[key] !== undefined
+      : state.repProgression.overrides[key] !== undefined;
+    cell.classList.toggle('is-override', isOvr);
+  }
+
+  // Rebuild all charts from state (corrects snapping and updates load chart)
+  updateProgressionCharts();
+  if (!$('#page-today').hidden) renderToday();
 }
 
 function renderProgressionToggles() {
@@ -1777,7 +1845,7 @@ function renderProgressionTable() {
         const td = document.createElement('td');
         td.className = 'prog-cell' + (isOvr ? ' is-override' : '');
         td.dataset.week = week; td.dataset.section = section; td.dataset.bp = bp; td.dataset.type = 'rpe';
-        td.innerHTML = `<input type="range" class="prog-slider rpe-slider" min="5" max="10" step="0.5" value="${val}"><input type="number" class="prog-num" min="5" max="10" step="0.5" value="${val}">`;
+        td.innerHTML = `<input type="number" class="prog-num" min="5" max="10" step="0.5" value="${val}">`;
         rpeRow.appendChild(td);
       }
     }
@@ -1794,7 +1862,7 @@ function renderProgressionTable() {
         const td = document.createElement('td');
         td.className = 'prog-cell' + (isOvr ? ' is-override' : '');
         td.dataset.week = week; td.dataset.section = section; td.dataset.bp = bp; td.dataset.type = 'rep';
-        td.innerHTML = `<input type="range" class="prog-slider rep-slider" min="0" max="1" step="0.05" value="${val}"><input type="number" class="prog-num" min="0" max="1" step="0.05" value="${val}">`;
+        td.innerHTML = `<input type="number" class="prog-num" min="0" max="1" step="0.05" value="${val}">`;
         repRow.appendChild(td);
       }
     }
@@ -1815,7 +1883,7 @@ function attachProgressionTableListeners() {
   tbody.parentNode.replaceChild(fresh, tbody);
   fresh.addEventListener('input', e => {
     const target = e.target;
-    if (!target.classList.contains('prog-slider') && !target.classList.contains('prog-num')) return;
+    if (!target.classList.contains('prog-num')) return;
     const cell = target.closest('.prog-cell');
     if (!cell) return;
     const week    = parseInt(cell.dataset.week);
@@ -1823,11 +1891,6 @@ function attachProgressionTableListeners() {
     const bp      = cell.dataset.bp;
     const type    = cell.dataset.type;
     const value   = parseFloat(target.value);
-    // Sync sibling
-    const isSlider = target.classList.contains('prog-slider');
-    const sibling  = isSlider ? cell.querySelector('.prog-num') : cell.querySelector('.prog-slider');
-    if (sibling && parseFloat(sibling.value) !== value) sibling.value = value;
-    // Persist
     if (type === 'rpe') {
       const def = state.rpeSchedule.defaults[bp] || 8.0;
       if (value === def) removeRPEOverride(week, section, bp);
