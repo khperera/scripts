@@ -11,19 +11,26 @@ function getFilteredLog(daysBack) {
   return state.log.filter(s => new Date(s.date).getTime() >= cutoff);
 }
 
-// For a single exercise: returns daily best e1RM, in raw units (lb/kg).
-// Used for the single-exercise chart where absolute values make sense.
+// For a single exercise: returns daily best e1RM, in raw units (lb/kg),
+// plus the weight and reps from the set that produced that best e1RM.
 function getDailyBestE1RM(exId, daysBack) {
   const cutoff = getDaysAgo(daysBack);
-  const map = {}; // "YYYY-MM-DD" → best e1rm that day
+  const map = {}; // "YYYY-MM-DD" → { e1rm, weight, reps }
   for (const s of state.log) {
     if (s.exId !== exId) continue;
     if (new Date(s.date).getTime() < cutoff) continue;
     const day = s.date.slice(0, 10);
-    if (!map[day] || s.e1rm > map[day]) map[day] = s.e1rm;
+    if (!map[day] || s.e1rm > map[day].e1rm) {
+      map[day] = { e1rm: s.e1rm, weight: s.weight, reps: s.reps };
+    }
   }
   const sorted = Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]));
-  return { labels: sorted.map(e => e[0]), values: sorted.map(e => e[1]) };
+  return {
+    labels:  sorted.map(e => e[0]),
+    values:  sorted.map(e => e[1].e1rm),
+    weights: sorted.map(e => e[1].weight),
+    reps:    sorted.map(e => e[1].reps),
+  };
 }
 
 // For a single exercise: returns daily % change relative to the FIRST logged value
@@ -238,8 +245,8 @@ function renderAnalytics() {
     const label = ex ? ex.name : 'Exercise';
     $('#analyticsChartTitle').textContent = `e1RM Over Time — ${label}`;
 
-    // Plot raw estimated 1RM on Y-axis
-    const { labels, values: rawValues } = getDailyBestE1RM(exId, period);
+    // Plot raw estimated 1RM on Y-axis, plus actual weight and reps
+    const { labels, values: rawValues, weights, reps } = getDailyBestE1RM(exId, period);
     // % change computed from first→last for the stat card only
     const baseline = rawValues[0] || 0;
     const totalPct = rawValues.length >= 2
@@ -250,13 +257,15 @@ function renderAnalytics() {
       drawNoDataMessage(mainCtx);
     } else {
       const trendData = buildTrendline(rawValues);
+      const minReps = Math.max(1, Math.min(...reps) - 1);
+      const maxReps = Math.min(15, Math.max(...reps) + 1);
       e1rmChartInstance = new Chart(mainCtx, {
         type: 'line',
         data: {
           labels,
           datasets: [
             {
-              label: `${label} — Estimated 1RM (${state.unit})`,
+              label: `Estimated 1RM (${state.unit})`,
               data: rawValues.map(v => parseFloat(v.toFixed(1))),
               borderColor: '#71a8ff',
               backgroundColor: 'rgba(113,168,255,0.10)',
@@ -264,6 +273,32 @@ function renderAnalytics() {
               pointHoverRadius: 6,
               tension: 0.3,
               fill: true,
+              yAxisID: 'y',
+            },
+            {
+              label: `Weight Lifted (${state.unit})`,
+              data: weights.map(v => parseFloat(v.toFixed(1))),
+              borderColor: '#ff9f43',
+              backgroundColor: 'rgba(255,159,67,0.08)',
+              borderDash: [4, 2],
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              tension: 0.3,
+              fill: false,
+              yAxisID: 'y',
+            },
+            {
+              label: 'Reps',
+              data: reps,
+              borderColor: '#a29bfe',
+              backgroundColor: 'rgba(162,155,254,0.15)',
+              borderDash: [2, 2],
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointStyle: 'rectRot',
+              tension: 0.3,
+              fill: false,
+              yAxisID: 'yReps',
             },
             {
               label: 'Trend',
@@ -273,6 +308,7 @@ function renderAnalytics() {
               pointRadius: 0,
               tension: 0,
               fill: false,
+              yAxisID: 'y',
             }
           ]
         },
@@ -282,13 +318,19 @@ function renderAnalytics() {
             legend: { labels: { color: '#e7ecf3' } },
             tooltip: {
               callbacks: {
-                label: c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)} ${state.unit}`,
-                afterLabel: (c) => {
-                  // Show % change from baseline in tooltip
-                  if (c.datasetIndex === 0 && baseline > 0) {
-                    const pct = ((c.parsed.y - baseline) / baseline) * 100;
-                    return `vs period start: ${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
+                label: c => {
+                  if (c.datasetIndex === 0) {
+                    const pct = baseline > 0 ? ((c.parsed.y - baseline) / baseline) * 100 : null;
+                    const pctStr = pct !== null ? `  (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}% vs start)` : '';
+                    return `e1RM: ${c.parsed.y.toFixed(1)} ${state.unit}${pctStr}`;
                   }
+                  if (c.datasetIndex === 1) {
+                    return `Lifted: ${c.parsed.y.toFixed(1)} ${state.unit} × ${reps[c.dataIndex]} reps`;
+                  }
+                  if (c.datasetIndex === 2) {
+                    return `Reps: ${c.parsed.y}`;
+                  }
+                  return `Trend: ${c.parsed.y.toFixed(1)} ${state.unit}`;
                 }
               }
             }
@@ -296,9 +338,18 @@ function renderAnalytics() {
           scales: {
             x: { ticks: { color: '#8b95a7', maxTicksLimit: 10 }, grid: { color: '#1e2230' } },
             y: {
+              position: 'left',
               ticks: { color: '#8b95a7', callback: v => v + ' ' + state.unit },
               grid: { color: '#1e2230' },
-              title: { display: true, text: `Estimated 1RM (${state.unit})`, color: '#8b95a7' }
+              title: { display: true, text: `Weight (${state.unit})`, color: '#8b95a7' }
+            },
+            yReps: {
+              position: 'right',
+              min: minReps,
+              max: maxReps,
+              ticks: { color: '#a29bfe', stepSize: 1, callback: v => Number.isInteger(v) ? v + ' rep' + (v === 1 ? '' : 's') : '' },
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: 'Reps', color: '#a29bfe' }
             }
           }
         }
