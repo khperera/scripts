@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-LiftTracker is a **single-file, vanilla HTML/CSS/JavaScript** weightlifting tracker that runs entirely in the browser. All state is stored in `localStorage`. There is no build step, no bundler, no backend, and no framework.
+LiftTracker is a **modular, vanilla HTML/CSS/JavaScript** weightlifting tracker that runs entirely in the browser. All state is stored in `localStorage`. There is no build step, no bundler, no backend, and no framework.
 
-The entire application lives in `index.html` (~700+ lines). JSON files (`lifttracker-*.json`) are user data exports and are not source code.
+The application is split across `index.html` (HTML structure), `css/styles.css` (all styles), and eight JS files in `js/` (loaded via regular `<script>` tags in dependency order). JSON files (`lifttracker-*.json`) are user data exports and are not source code.
 
 ---
 
@@ -12,7 +12,18 @@ The entire application lives in `index.html` (~700+ lines). JSON files (`lifttra
 
 ```
 scripts/
-├── index.html              # Entire application (HTML + CSS + JS)
+├── index.html              # HTML structure + <link>/<script> tags (entry point)
+├── css/
+│   └── styles.css          # All CSS (custom properties, layout, components, progression)
+├── js/
+│   ├── state.js            # Constants, DEFAULT_STATE, state loading, persist(), $(), fmt(), isLowerBody()
+│   ├── calculations.js     # calculateE1RM, roundToPlates, prescribeLoad, applyDeload, progressTrainingMax
+│   ├── schedule.js         # RPE/Rep accessors, presets (linear/wave/block/random), resetRPESchedule
+│   ├── data-io.js          # saveSettings, closeWeek, exportData, importData, session save/restore
+│   ├── pages.js            # renderToday, renderTemplates, renderExercises, renderHistory, renderSettings, CRUD
+│   ├── progression.js      # Progression charts/tables: init, update, drag handlers, renderProgression
+│   ├── analytics.js        # Analytics: trends, summaries, charts, renderAnalytics
+│   └── app.js              # renderTabs, setupEventListeners, initialize, DOMContentLoaded
 ├── package.json            # Dev dependency: @playwright/test only
 ├── playwright.config.js    # Playwright config (Chromium, file:// base URL)
 ├── tests/
@@ -25,12 +36,14 @@ scripts/
 
 ## Architecture
 
-### Single-File SPA Pattern
+### Modular SPA Pattern
 
-`index.html` contains three sections in order:
-1. `<style>` — All CSS with CSS custom properties (dark theme)
+`index.html` contains only the HTML structure and `<script>`/`<link>` tags:
+1. `<link rel="stylesheet" href="css/styles.css">` — External CSS
 2. `<body>` — Static HTML: `<header>` with hamburger nav + `<main>` with page sections
-3. `<script>` — All JavaScript (constants, state, utility functions, render functions, event listeners)
+3. `<script src="js/*.js">` tags — Eight JS files loaded in dependency order (no ES modules, uses global scope)
+
+All JS files use regular `<script>` tags (not ES modules) so the app works with the `file://` protocol used by tests. Script load order matters — see `index.html` for the correct sequence.
 
 Navigation is tab-based. Each page is a `<section id="page-*">` element. Switching pages toggles the `hidden` attribute on sections.
 
@@ -231,7 +244,7 @@ The `lifttracker-*.json` files in the repo are real user data exports and should
 
 ## Development Conventions
 
-1. **No build step** — edit `index.html` directly; changes are immediately visible in the browser.
+1. **No build step** — edit files directly; changes are immediately visible in the browser. JS is split across `js/*.js` files loaded via `<script>` tags.
 2. **State mutations must call `persist()`** — never modify `state` without persisting.
 3. **Use `$(selector)` not `document.querySelector`** — the `$` alias is defined at the top of the script.
 4. **Backwards compatibility guards** — when adding new top-level state fields, add initialization checks after the state load (see the `rpeSchedule`/`repProgression`/`exerciseRepRanges` pattern at lines 642–655).
