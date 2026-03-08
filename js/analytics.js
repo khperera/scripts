@@ -257,6 +257,8 @@ function renderAnalytics() {
       drawNoDataMessage(mainCtx);
     } else {
       const trendData = buildTrendline(rawValues);
+      const minReps = Math.max(1, Math.min(...reps) - 1);
+      const maxReps = Math.min(15, Math.max(...reps) + 1);
       e1rmChartInstance = new Chart(mainCtx, {
         type: 'line',
         data: {
@@ -271,6 +273,7 @@ function renderAnalytics() {
               pointHoverRadius: 6,
               tension: 0.3,
               fill: true,
+              yAxisID: 'y',
             },
             {
               label: `Weight Lifted (${state.unit})`,
@@ -282,6 +285,20 @@ function renderAnalytics() {
               pointHoverRadius: 6,
               tension: 0.3,
               fill: false,
+              yAxisID: 'y',
+            },
+            {
+              label: 'Reps',
+              data: reps,
+              borderColor: '#a29bfe',
+              backgroundColor: 'rgba(162,155,254,0.15)',
+              borderDash: [2, 2],
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointStyle: 'rectRot',
+              tension: 0.3,
+              fill: false,
+              yAxisID: 'yReps',
             },
             {
               label: 'Trend',
@@ -291,6 +308,7 @@ function renderAnalytics() {
               pointRadius: 0,
               tension: 0,
               fill: false,
+              yAxisID: 'y',
             }
           ]
         },
@@ -309,6 +327,9 @@ function renderAnalytics() {
                   if (c.datasetIndex === 1) {
                     return `Lifted: ${c.parsed.y.toFixed(1)} ${state.unit} × ${reps[c.dataIndex]} reps`;
                   }
+                  if (c.datasetIndex === 2) {
+                    return `Reps: ${c.parsed.y}`;
+                  }
                   return `Trend: ${c.parsed.y.toFixed(1)} ${state.unit}`;
                 }
               }
@@ -317,9 +338,18 @@ function renderAnalytics() {
           scales: {
             x: { ticks: { color: '#8b95a7', maxTicksLimit: 10 }, grid: { color: '#1e2230' } },
             y: {
+              position: 'left',
               ticks: { color: '#8b95a7', callback: v => v + ' ' + state.unit },
               grid: { color: '#1e2230' },
               title: { display: true, text: `Weight (${state.unit})`, color: '#8b95a7' }
+            },
+            yReps: {
+              position: 'right',
+              min: minReps,
+              max: maxReps,
+              ticks: { color: '#a29bfe', stepSize: 1, callback: v => Number.isInteger(v) ? v + ' rep' + (v === 1 ? '' : 's') : '' },
+              grid: { drawOnChartArea: false },
+              title: { display: true, text: 'Reps', color: '#a29bfe' }
             }
           }
         }
