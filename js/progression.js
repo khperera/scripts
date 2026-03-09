@@ -18,10 +18,11 @@ function computeLoadFactor(rpe, repPct) {
 
 function buildProgressionDatasets(type) {
   const numDays = state.days.length;
+  const cycleLength = state.cycleLength || 6;
   return BODY_PARTS.map(bp => {
     const color = PROGRESSION_COLORS[bp];
     const data = [];
-    for (let week = 1; week <= 6; week++) {
+    for (let week = 1; week <= cycleLength; week++) {
       for (const day of state.days) {
         const rpe    = getRPEForExercise(week, day.id, bp);
         const repPct = getRepPercentageForExercise(week, day.id, bp);
@@ -208,10 +209,11 @@ function renderProgressionToggles() {
 }
 
 function renderProgressionTable() {
+  const cycleLength = state.cycleLength || 6;
   // Build dynamic header
   const thead = document.querySelector('#progressionTable thead tr');
   thead.innerHTML = '<th style="min-width:100px;">Body Part</th>';
-  for (let week = 1; week <= 6; week++) {
+  for (let week = 1; week <= cycleLength; week++) {
     state.days.forEach(day => {
       const th = document.createElement('th');
       th.textContent = `W${week}-${day.name}`;
@@ -219,7 +221,7 @@ function renderProgressionTable() {
     });
   }
 
-  const totalCols = 1 + 6 * state.days.length;
+  const totalCols = 1 + cycleLength * state.days.length;
   const tbody = document.querySelector('#progressionTable tbody');
   tbody.innerHTML = '';
   BODY_PARTS.forEach(bp => {
@@ -234,7 +236,7 @@ function renderProgressionTable() {
     labelCell.rowSpan = 2;
     labelCell.innerHTML = `<strong style="color:${color};">${bp}</strong><div class="tiny" style="margin-top:3px;color:#71a8ff;">RPE ↑</div><div class="tiny" style="color:#37d67a;">Rep% ↓</div>`;
     rpeRow.appendChild(labelCell);
-    for (let week = 1; week <= 6; week++) {
+    for (let week = 1; week <= cycleLength; week++) {
       for (const day of state.days) {
         const val  = getRPEForExercise(week, day.id, bp);
         const isOvr = state.rpeSchedule.overrides[`${week}-${day.id}-${bp}`] !== undefined;
@@ -251,7 +253,7 @@ function renderProgressionTable() {
     repRow.className = 'prog-row-rep';
     repRow.dataset.bp = bp;
     if (!progressionVisibility[bp]) repRow.style.display = 'none';
-    for (let week = 1; week <= 6; week++) {
+    for (let week = 1; week <= cycleLength; week++) {
       for (const day of state.days) {
         const val  = getRepPercentageForExercise(week, day.id, bp);
         const isOvr = state.repProgression.overrides[`${week}-${day.id}-${bp}`] !== undefined;

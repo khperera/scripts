@@ -8,6 +8,11 @@ function saveSettings() {
   state.settings.upLowerStrong = Number($('#upLowerStrong').value);
   state.settings.upLowerSmall = Number($('#upLowerSmall').value);
   state.settings.downLower = Number($('#downLower').value);
+  const newCycleLength = Number($('#cycleLength').value);
+  if (newCycleLength >= 2) {
+    state.cycleLength = newCycleLength;
+    $('#week').max = newCycleLength;
+  }
 
   persist();
   alert('Settings saved!');
@@ -85,6 +90,9 @@ async function importData(event) {
       if (state.nextDayId === undefined || state.nextDayId === null) {
         state.nextDayId = state.days ? state.days.length : 0;
       }
+      if (!state.cycleLength) {
+        state.cycleLength = 6;
+      }
 
       persist();
 
@@ -119,7 +127,11 @@ function saveLastSession() {
 function restoreLastSession() {
   const lastWeek = localStorage.getItem('lifttracker_last_week');
   const lastDay = localStorage.getItem('lifttracker_last_day');
-  if (lastWeek) $('#week').value = lastWeek;
+  if (lastWeek) {
+    $('#week').value = lastWeek;
+    // Rebuild dropdown options for the restored week so values match
+    updateDayDropdown();
+  }
   if (lastDay) {
     // Check if the saved day value exists in the current dropdown
     const daySelect = $('#day');

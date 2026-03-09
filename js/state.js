@@ -23,10 +23,11 @@ const PROGRESSION_COLORS = {
   ARMS:       '#ffd166',
 };
 
-// Dynamic progression X-axis labels based on state.days
+// Dynamic progression X-axis labels based on state.days and state.cycleLength
 function getProgXLabels() {
   const labels = [];
-  for (let week = 1; week <= 6; week++) {
+  const cycleLength = state.cycleLength || 6;
+  for (let week = 1; week <= cycleLength; week++) {
     state.days.forEach(day => {
       labels.push(`W${week}-${day.name}`);
     });
@@ -52,6 +53,7 @@ const DEFAULT_STATE = {
     { id: 3, name: 'Barbell Row', cat: 'BACK', tm: 185 },
     { id: 4, name: 'RDL', cat: 'HAMSTRINGS', tm: 225 }
   ],
+  cycleLength: 6,
   nextId: 5,
   days: [
     { id: 0, name: 'A-Upper' },
