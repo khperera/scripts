@@ -112,12 +112,30 @@ function initialize() {
   // Progression tab renders on demand (charts need visible canvas)
 }
 
-// Bind analytics controls
-document.addEventListener('DOMContentLoaded', () => {
+// Start the app when DOM is loaded
+document.addEventListener('DOMContentLoaded', async () => {
+  // Bind analytics controls
   $('#analyticsView').onchange = () => { populateAnalyticsFilter(true); renderAnalytics(); };
   $('#analyticsPeriod').onchange = renderAnalytics;
   $('#analyticsFilter').onchange = renderAnalytics;
-});
 
-// Start the app when DOM is loaded
-document.addEventListener('DOMContentLoaded', initialize);
+  // Set up tab/hamburger navigation immediately — does not depend on loaded state
+  renderTabs();
+
+  // Initialize SQLite, load (or migrate) state
+  const { db, loadedState } = await initDatabase();
+  window._liftDb = db;
+  Object.keys(state).forEach(k => delete state[k]);
+  Object.assign(state, loadedState);
+
+  // Complete initialization now that state is ready
+  updateDayDropdown();
+  restoreLastSession();
+  setupEventListeners();
+  renderToday();
+  renderTemplates();
+  renderExercises();
+  renderHistory();
+  renderSettings();
+  // Progression tab renders on demand (charts need visible canvas)
+});
