@@ -17,13 +17,14 @@ function computeLoadFactor(rpe, repPct) {
 }
 
 function buildProgressionDatasets(type) {
+  const numDays = state.days.length;
   return BODY_PARTS.map(bp => {
     const color = PROGRESSION_COLORS[bp];
     const data = [];
     for (let week = 1; week <= 6; week++) {
-      for (const section of ['A', 'B']) {
-        const rpe    = getRPEForExercise(week, section, bp);
-        const repPct = getRepPercentageForExercise(week, section, bp);
+      for (const day of state.days) {
+        const rpe    = getRPEForExercise(week, day.id, bp);
+        const repPct = getRepPercentageForExercise(week, day.id, bp);
         let value;
         if (type === 'rpe')       value = rpe;
         else if (type === 'rep')  value = repPct;
@@ -76,6 +77,7 @@ function destroyProgressionCharts() {
 
 function initProgressionCharts() {
   destroyProgressionCharts();
+  const labels = getProgXLabels();
 
   const rpeOpts = progressionChartOptions('RPE', 5, 10, c => `${c.dataset.label}: ${c.parsed.y.toFixed(1)}`);
   rpeOpts.plugins.dragData = {
@@ -91,7 +93,7 @@ function initProgressionCharts() {
   };
   rpeChartInstance = new Chart($('#rpeChart').getContext('2d'), {
     type: 'line',
-    data: { labels: PROG_X_LABELS, datasets: buildProgressionDatasets('rpe') },
+    data: { labels: labels, datasets: buildProgressionDatasets('rpe') },
     options: rpeOpts,
   });
 
@@ -109,23 +111,25 @@ function initProgressionCharts() {
   };
   repChartInstance = new Chart($('#repChart').getContext('2d'), {
     type: 'line',
-    data: { labels: PROG_X_LABELS, datasets: buildProgressionDatasets('rep') },
+    data: { labels: labels, datasets: buildProgressionDatasets('rep') },
     options: repOpts,
   });
 
   loadChartInstance = new Chart($('#loadChart').getContext('2d'), {
     type: 'line',
-    data: { labels: PROG_X_LABELS, datasets: buildProgressionDatasets('load') },
+    data: { labels: labels, datasets: buildProgressionDatasets('load') },
     options: progressionChartOptions('Felt Load %1RM', 0.5, 1.0, c => `${c.dataset.label}: ${(c.parsed.y * 100).toFixed(1)}%`),
   });
 }
 
 function updateProgressionCharts() {
   if (!rpeChartInstance) return;
+  const labels = getProgXLabels();
   const types = ['rpe', 'rep', 'load'];
   const instances = [rpeChartInstance, repChartInstance, loadChartInstance];
   types.forEach((type, ci) => {
     const datasets = buildProgressionDatasets(type);
+    instances[ci].data.labels = labels;
     instances[ci].data.datasets.forEach((ds, i) => {
       ds.data   = datasets[i].data;
       ds.hidden = !progressionVisibility[datasets[i].label];
@@ -137,31 +141,32 @@ function updateProgressionCharts() {
 function handleProgressionDrag(type, datasetIndex, dataIndex, value) {
   const bp = BODY_PARTS[datasetIndex];
   if (!bp) return;
-  const week    = Math.floor(dataIndex / 2) + 1;
-  const section = dataIndex % 2 === 0 ? 'A' : 'B';
+  const numDays = state.days.length;
+  const week  = Math.floor(dataIndex / numDays) + 1;
+  const dayId = state.days[dataIndex % numDays].id;
 
   if (type === 'rpe') {
     const snapped = Math.round(Math.min(10, Math.max(5, value)) * 2) / 2;
     const def = state.rpeSchedule.defaults[bp] || 8.0;
-    if (snapped === def) removeRPEOverride(week, section, bp);
-    else setRPEOverride(week, section, bp, snapped);
+    if (snapped === def) removeRPEOverride(week, dayId, bp);
+    else setRPEOverride(week, dayId, bp, snapped);
   } else {
     const snapped = Math.round(Math.min(1, Math.max(0, value)) * 20) / 20;
     const def = state.repProgression.defaults[bp] || 0.5;
-    if (snapped === def) removeRepPercentageOverride(week, section, bp);
-    else setRepPercentageOverride(week, section, bp, snapped);
+    if (snapped === def) removeRepPercentageOverride(week, dayId, bp);
+    else setRepPercentageOverride(week, dayId, bp, snapped);
   }
 
   // Sync the number input in the table cell
-  const cell = document.querySelector(`.prog-cell[data-week="${week}"][data-section="${section}"][data-bp="${bp}"][data-type="${type}"]`);
+  const cell = document.querySelector(`.prog-cell[data-week="${week}"][data-day-id="${dayId}"][data-bp="${bp}"][data-type="${type}"]`);
   if (cell) {
     const numInput = cell.querySelector('.prog-num');
     if (numInput) {
       numInput.value = type === 'rpe'
-        ? getRPEForExercise(week, section, bp)
-        : getRepPercentageForExercise(week, section, bp);
+        ? getRPEForExercise(week, dayId, bp)
+        : getRepPercentageForExercise(week, dayId, bp);
     }
-    const key = `${week}-${section}-${bp}`;
+    const key = `${week}-${dayId}-${bp}`;
     const isOvr = type === 'rpe'
       ? state.rpeSchedule.overrides[key] !== undefined
       : state.repProgression.overrides[key] !== undefined;
@@ -203,6 +208,18 @@ function renderProgressionToggles() {
 }
 
 function renderProgressionTable() {
+  // Build dynamic header
+  const thead = document.querySelector('#progressionTable thead tr');
+  thead.innerHTML = '<th style="min-width:100px;">Body Part</th>';
+  for (let week = 1; week <= 6; week++) {
+    state.days.forEach(day => {
+      const th = document.createElement('th');
+      th.textContent = `W${week}-${day.name}`;
+      thead.appendChild(th);
+    });
+  }
+
+  const totalCols = 1 + 6 * state.days.length;
   const tbody = document.querySelector('#progressionTable tbody');
   tbody.innerHTML = '';
   BODY_PARTS.forEach(bp => {
@@ -218,12 +235,12 @@ function renderProgressionTable() {
     labelCell.innerHTML = `<strong style="color:${color};">${bp}</strong><div class="tiny" style="margin-top:3px;color:#71a8ff;">RPE ↑</div><div class="tiny" style="color:#37d67a;">Rep% ↓</div>`;
     rpeRow.appendChild(labelCell);
     for (let week = 1; week <= 6; week++) {
-      for (const section of ['A', 'B']) {
-        const val  = getRPEForExercise(week, section, bp);
-        const isOvr = state.rpeSchedule.overrides[`${week}-${section}-${bp}`] !== undefined;
+      for (const day of state.days) {
+        const val  = getRPEForExercise(week, day.id, bp);
+        const isOvr = state.rpeSchedule.overrides[`${week}-${day.id}-${bp}`] !== undefined;
         const td = document.createElement('td');
         td.className = 'prog-cell' + (isOvr ? ' is-override' : '');
-        td.dataset.week = week; td.dataset.section = section; td.dataset.bp = bp; td.dataset.type = 'rpe';
+        td.dataset.week = week; td.dataset.dayId = day.id; td.dataset.bp = bp; td.dataset.type = 'rpe';
         td.innerHTML = `<input type="number" class="prog-num" min="5" max="10" step="0.5" value="${val}">`;
         rpeRow.appendChild(td);
       }
@@ -235,12 +252,12 @@ function renderProgressionTable() {
     repRow.dataset.bp = bp;
     if (!progressionVisibility[bp]) repRow.style.display = 'none';
     for (let week = 1; week <= 6; week++) {
-      for (const section of ['A', 'B']) {
-        const val  = getRepPercentageForExercise(week, section, bp);
-        const isOvr = state.repProgression.overrides[`${week}-${section}-${bp}`] !== undefined;
+      for (const day of state.days) {
+        const val  = getRepPercentageForExercise(week, day.id, bp);
+        const isOvr = state.repProgression.overrides[`${week}-${day.id}-${bp}`] !== undefined;
         const td = document.createElement('td');
         td.className = 'prog-cell' + (isOvr ? ' is-override' : '');
-        td.dataset.week = week; td.dataset.section = section; td.dataset.bp = bp; td.dataset.type = 'rep';
+        td.dataset.week = week; td.dataset.dayId = day.id; td.dataset.bp = bp; td.dataset.type = 'rep';
         td.innerHTML = `<input type="number" class="prog-num" min="0" max="1" step="0.05" value="${val}">`;
         repRow.appendChild(td);
       }
@@ -249,7 +266,7 @@ function renderProgressionTable() {
     // Separator
     const sep = document.createElement('tr');
     sep.className = 'prog-separator';
-    sep.innerHTML = '<td colspan="13"></td>';
+    sep.innerHTML = `<td colspan="${totalCols}"></td>`;
     tbody.appendChild(sep);
   });
   attachProgressionTableListeners();
@@ -266,20 +283,20 @@ function attachProgressionTableListeners() {
     const cell = target.closest('.prog-cell');
     if (!cell) return;
     const week    = parseInt(cell.dataset.week);
-    const section = cell.dataset.section;
+    const dayId   = parseInt(cell.dataset.dayId);
     const bp      = cell.dataset.bp;
     const type    = cell.dataset.type;
     const value   = parseFloat(target.value);
     if (type === 'rpe') {
       const def = state.rpeSchedule.defaults[bp] || 8.0;
-      if (value === def) removeRPEOverride(week, section, bp);
-      else setRPEOverride(week, section, bp, value);
-      cell.classList.toggle('is-override', state.rpeSchedule.overrides[`${week}-${section}-${bp}`] !== undefined);
+      if (value === def) removeRPEOverride(week, dayId, bp);
+      else setRPEOverride(week, dayId, bp, value);
+      cell.classList.toggle('is-override', state.rpeSchedule.overrides[`${week}-${dayId}-${bp}`] !== undefined);
     } else {
       const def = state.repProgression.defaults[bp] || 0.5;
-      if (value === def) removeRepPercentageOverride(week, section, bp);
-      else setRepPercentageOverride(week, section, bp, value);
-      cell.classList.toggle('is-override', state.repProgression.overrides[`${week}-${section}-${bp}`] !== undefined);
+      if (value === def) removeRepPercentageOverride(week, dayId, bp);
+      else setRepPercentageOverride(week, dayId, bp, value);
+      cell.classList.toggle('is-override', state.repProgression.overrides[`${week}-${dayId}-${bp}`] !== undefined);
     }
     updateProgressionCharts();
     if (!$('#page-today').hidden) renderToday();

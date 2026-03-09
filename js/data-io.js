@@ -27,9 +27,13 @@ function closeWeek() {
 
 function resetTemplates() {
   if (confirm('Are you sure you want to reset all templates? This cannot be undone.')) {
+    state.days = JSON.parse(JSON.stringify(DEFAULT_STATE.days));
+    state.nextDayId = DEFAULT_STATE.nextDayId;
     state.templates = JSON.parse(JSON.stringify(DEFAULT_STATE.templates));
     persist();
     renderTemplates();
+    updateDayDropdown();
+    renderToday();
     alert('Templates reset to default!');
   }
 }
@@ -58,12 +62,19 @@ async function importData(event) {
     // Validate imported data structure
     if (importedData && typeof importedData === 'object') {
       Object.assign(state, importedData);
+
+      // Run migration if imported data is old format (no days array)
+      if (!state.days) {
+        migrateToCustomDays();
+      }
+
       persist();
 
       // Re-render all views
       renderSettings();
       renderExercises();
       renderTemplates();
+      updateDayDropdown();
       renderToday();
       renderHistory();
       if (!$('#page-progression').hidden) renderProgression();
@@ -91,5 +102,12 @@ function restoreLastSession() {
   const lastWeek = localStorage.getItem('lifttracker_last_week');
   const lastDay = localStorage.getItem('lifttracker_last_day');
   if (lastWeek) $('#week').value = lastWeek;
-  if (lastDay) $('#day').value = lastDay;
+  if (lastDay) {
+    // Check if the saved day value exists in the current dropdown
+    const daySelect = $('#day');
+    const optionExists = Array.from(daySelect.options).some(opt => opt.value === lastDay);
+    if (optionExists) {
+      daySelect.value = lastDay;
+    }
+  }
 }

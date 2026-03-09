@@ -23,11 +23,16 @@ const PROGRESSION_COLORS = {
   ARMS:       '#ffd166',
 };
 
-const PROG_X_LABELS = [
-  'W1-A','W1-B','W2-A','W2-B',
-  'W3-A','W3-B','W4-A','W4-B',
-  'W5-A','W5-B','W6-A','W6-B'
-];
+// Dynamic progression X-axis labels based on state.days
+function getProgXLabels() {
+  const labels = [];
+  for (let week = 1; week <= 6; week++) {
+    state.days.forEach(day => {
+      labels.push(`W${week}-${day.name}`);
+    });
+  }
+  return labels;
+}
 
 // Default state
 const DEFAULT_STATE = {
@@ -48,27 +53,34 @@ const DEFAULT_STATE = {
     { id: 4, name: 'RDL', cat: 'HAMSTRINGS', tm: 225 }
   ],
   nextId: 5,
+  days: [
+    { id: 0, name: 'A-Upper' },
+    { id: 1, name: 'A-Lower' },
+    { id: 2, name: 'B-Upper' },
+    { id: 3, name: 'B-Lower' }
+  ],
+  nextDayId: 4,
   templates: {
-    'A-Upper': [
+    '0': [
       { exId: 1, reps: 5, rpe: 8.5, sets: 4 },
       { exId: 3, reps: 6, rpe: 8.0, sets: 3 }
     ],
-    'A-Lower': [
+    '1': [
       { exId: 2, reps: 5, rpe: 8.5, sets: 4 },
       { exId: 4, reps: 6, rpe: 8.0, sets: 3 }
     ],
-    'B-Upper': [
+    '2': [
       { exId: 1, reps: 4, rpe: 8.0, sets: 3 },
       { exId: 3, reps: 5, rpe: 8.0, sets: 3 }
     ],
-    'B-Lower': [
+    '3': [
       { exId: 2, reps: 4, rpe: 8.0, sets: 3 },
       { exId: 4, reps: 5, rpe: 8.0, sets: 3 }
     ]
   },
   // RPE Schedule System
   rpeSchedule: {
-    // Format: "week-section-bodypart": rpe
+    // Format: "week-dayId-bodypart": rpe
     overrides: {},
     // Default RPE values when no override exists
     defaults: {
@@ -82,7 +94,7 @@ const DEFAULT_STATE = {
   },
   // Rep Progression System
   repProgression: {
-    // Format: "week-section-bodypart": percentage (0-1)
+    // Format: "week-dayId-bodypart": percentage (0-1)
     overrides: {},
     // Default rep percentages when no override exists
     defaults: {
@@ -101,6 +113,99 @@ const DEFAULT_STATE = {
 
 // Load or initialize state
 let state = JSON.parse(localStorage.getItem(STORE_KEY)) || JSON.parse(JSON.stringify(DEFAULT_STATE));
+
+// Migration: convert old fixed A/B template system to custom days
+function migrateToCustomDays() {
+  if (state.days) return; // Already migrated
+
+  const oldTemplateKeys = Object.keys(state.templates);
+  // Build days array from existing template keys
+  const days = [];
+  const nameToId = {};
+  oldTemplateKeys.forEach((name, index) => {
+    days.push({ id: index, name: name });
+    nameToId[name] = index;
+  });
+
+  state.days = days;
+  state.nextDayId = days.length;
+
+  // Rekey templates from name keys to ID keys
+  const newTemplates = {};
+  oldTemplateKeys.forEach(name => {
+    newTemplates[String(nameToId[name])] = state.templates[name];
+  });
+  state.templates = newTemplates;
+
+  // Build section-to-dayIds map for override migration
+  // Old keys used section letter (A or B) extracted via templateKey.split('-')[0]
+  const sectionToDayIds = {};
+  oldTemplateKeys.forEach(name => {
+    const section = name.split('-')[0]; // 'A' or 'B'
+    if (!sectionToDayIds[section]) sectionToDayIds[section] = [];
+    sectionToDayIds[section].push(nameToId[name]);
+  });
+
+  // Migrate RPE overrides
+  const oldRpeOverrides = state.rpeSchedule.overrides;
+  const newRpeOverrides = {};
+  Object.keys(oldRpeOverrides).forEach(key => {
+    const parts = key.split('-');
+    const week = parts[0];
+    const section = parts[1];
+    const bodyPart = parts.slice(2).join('-');
+    const dayIds = sectionToDayIds[section] || [];
+    dayIds.forEach(dayId => {
+      newRpeOverrides[`${week}-${dayId}-${bodyPart}`] = oldRpeOverrides[key];
+    });
+  });
+  state.rpeSchedule.overrides = newRpeOverrides;
+
+  // Migrate rep progression overrides
+  const oldRepOverrides = state.repProgression.overrides;
+  const newRepOverrides = {};
+  Object.keys(oldRepOverrides).forEach(key => {
+    const parts = key.split('-');
+    const week = parts[0];
+    const section = parts[1];
+    const bodyPart = parts.slice(2).join('-');
+    const dayIds = sectionToDayIds[section] || [];
+    dayIds.forEach(dayId => {
+      newRepOverrides[`${week}-${dayId}-${bodyPart}`] = oldRepOverrides[key];
+    });
+  });
+  state.repProgression.overrides = newRepOverrides;
+
+  // Migrate log entries
+  // Old day values: "A-Upper", "B-Lower", or "1-A-upper" style from day dropdown
+  state.log.forEach(entry => {
+    if (entry.day === undefined || entry.day === null) return;
+    // If already a number, skip
+    if (typeof entry.day === 'number') return;
+    const dayStr = String(entry.day);
+    // Try direct name match first (e.g., "A-Upper")
+    if (nameToId[dayStr] !== undefined) {
+      entry.day = nameToId[dayStr];
+      return;
+    }
+    // Try parsing old dropdown format "week-section-split" (e.g., "1-A-upper")
+    const dParts = dayStr.split('-');
+    if (dParts.length === 3) {
+      const section = dParts[1];
+      const split = dParts[2].charAt(0).toUpperCase() + dParts[2].slice(1);
+      const oldKey = `${section}-${split}`;
+      if (nameToId[oldKey] !== undefined) {
+        entry.day = nameToId[oldKey];
+        return;
+      }
+    }
+  });
+
+  persist();
+}
+
+// Run migration
+migrateToCustomDays();
 
 // Ensure RPE schedule exists in loaded state (for backwards compatibility)
 if (!state.rpeSchedule) {

@@ -1,6 +1,6 @@
 /* ---------- Rep Progression Functions ---------- */
-function getRepPercentageForExercise(week, section, bodyPart) {
-  const key = `${week}-${section}-${bodyPart}`;
+function getRepPercentageForExercise(week, dayId, bodyPart) {
+  const key = `${week}-${dayId}-${bodyPart}`;
 
   // Check for specific override first
   if (state.repProgression.overrides[key] !== undefined) {
@@ -11,14 +11,14 @@ function getRepPercentageForExercise(week, section, bodyPart) {
   return state.repProgression.defaults[bodyPart] || 0.5;
 }
 
-function setRepPercentageOverride(week, section, bodyPart, percentage) {
-  const key = `${week}-${section}-${bodyPart}`;
+function setRepPercentageOverride(week, dayId, bodyPart, percentage) {
+  const key = `${week}-${dayId}-${bodyPart}`;
   state.repProgression.overrides[key] = percentage;
   persist();
 }
 
-function removeRepPercentageOverride(week, section, bodyPart) {
-  const key = `${week}-${section}-${bodyPart}`;
+function removeRepPercentageOverride(week, dayId, bodyPart) {
+  const key = `${week}-${dayId}-${bodyPart}`;
   delete state.repProgression.overrides[key];
   persist();
 }
@@ -32,9 +32,9 @@ function setExerciseRepRange(exerciseId, minReps, maxReps) {
   persist();
 }
 
-function calculateTargetReps(exerciseId, week, section, bodyPart) {
+function calculateTargetReps(exerciseId, week, dayId, bodyPart) {
   const repRange = getExerciseRepRange(exerciseId);
-  const percentage = getRepPercentageForExercise(week, section, bodyPart);
+  const percentage = getRepPercentageForExercise(week, dayId, bodyPart);
   return Math.round(percentage * (repRange.max - repRange.min) + repRange.min);
 }
 
@@ -44,8 +44,8 @@ function resetRepProgression() {
 }
 
 /* ---------- RPE Schedule Functions ---------- */
-function getRPEForExercise(week, section, bodyPart) {
-  const key = `${week}-${section}-${bodyPart}`;
+function getRPEForExercise(week, dayId, bodyPart) {
+  const key = `${week}-${dayId}-${bodyPart}`;
 
   // Check for specific override first
   if (state.rpeSchedule.overrides[key] !== undefined) {
@@ -56,14 +56,14 @@ function getRPEForExercise(week, section, bodyPart) {
   return state.rpeSchedule.defaults[bodyPart] || 8.0;
 }
 
-function setRPEOverride(week, section, bodyPart, rpe) {
-  const key = `${week}-${section}-${bodyPart}`;
+function setRPEOverride(week, dayId, bodyPart, rpe) {
+  const key = `${week}-${dayId}-${bodyPart}`;
   state.rpeSchedule.overrides[key] = rpe;
   persist();
 }
 
-function removeRPEOverride(week, section, bodyPart) {
-  const key = `${week}-${section}-${bodyPart}`;
+function removeRPEOverride(week, dayId, bodyPart) {
+  const key = `${week}-${dayId}-${bodyPart}`;
   delete state.rpeSchedule.overrides[key];
   persist();
 }
@@ -73,10 +73,10 @@ function applyLinearProgression() {
   state.rpeSchedule.overrides = {};
 
   for (let week = 1; week <= 6; week++) {
-    for (const section of ['A', 'B']) {
+    for (const day of state.days) {
       for (const bodyPart of BODY_PARTS) {
         const rpe = 8.0 + ((week - 1) * 0.3); // Increases by 0.3 each week
-        setRPEOverride(week, section, bodyPart, Math.round(rpe * 2) / 2); // Round to nearest 0.5
+        setRPEOverride(week, day.id, bodyPart, Math.round(rpe * 2) / 2); // Round to nearest 0.5
       }
     }
   }
@@ -90,9 +90,9 @@ function applyWaveProgression() {
   state.rpeSchedule.overrides = {};
 
   for (let week = 1; week <= 6; week++) {
-    for (const section of ['A', 'B']) {
+    for (const day of state.days) {
       for (const bodyPart of BODY_PARTS) {
-        setRPEOverride(week, section, bodyPart, waves[week - 1]);
+        setRPEOverride(week, day.id, bodyPart, waves[week - 1]);
       }
     }
   }
@@ -105,11 +105,11 @@ function applyRandomProgression() {
   state.rpeSchedule.overrides = {};
 
   for (let week = 1; week <= 6; week++) {
-    for (const section of ['A', 'B']) {
+    for (const day of state.days) {
       for (const bodyPart of BODY_PARTS) {
         let rpe = Math.round((Math.random() * 2 + 8) * 2) / 2;
         if (week === 6) rpe = 8.0; // deload week - keep it manageable
-        setRPEOverride(week, section, bodyPart, rpe);
+        setRPEOverride(week, day.id, bodyPart, rpe);
       }
     }
   }
@@ -123,9 +123,9 @@ function applyBlockProgression() {
   state.rpeSchedule.overrides = {};
 
   for (let week = 1; week <= 6; week++) {
-    for (const section of ['A', 'B']) {
+    for (const day of state.days) {
       for (const bodyPart of BODY_PARTS) {
-        setRPEOverride(week, section, bodyPart, blocks[week - 1]);
+        setRPEOverride(week, day.id, bodyPart, blocks[week - 1]);
       }
     }
   }
@@ -143,10 +143,10 @@ function applyLinearRepProgression() {
   state.repProgression.overrides = {};
 
   for (let week = 1; week <= 6; week++) {
-    for (const section of ['A', 'B']) {
+    for (const day of state.days) {
       for (const bodyPart of BODY_PARTS) {
         const percentage = 1.0 - ((week - 1) * 0.2); // Decreases by 0.2 each week
-        setRepPercentageOverride(week, section, bodyPart, Math.max(0, Math.round(percentage * 10) / 10)); // Round to nearest 0.1
+        setRepPercentageOverride(week, day.id, bodyPart, Math.max(0, Math.round(percentage * 10) / 10)); // Round to nearest 0.1
       }
     }
   }
@@ -160,9 +160,9 @@ function applyWaveRepProgression() {
   state.repProgression.overrides = {};
 
   for (let week = 1; week <= 6; week++) {
-    for (const section of ['A', 'B']) {
+    for (const day of state.days) {
       for (const bodyPart of BODY_PARTS) {
-        setRepPercentageOverride(week, section, bodyPart, waves[week - 1]);
+        setRepPercentageOverride(week, day.id, bodyPart, waves[week - 1]);
       }
     }
   }
@@ -176,9 +176,9 @@ function applyBlockRepProgression() {
   state.repProgression.overrides = {};
 
   for (let week = 1; week <= 6; week++) {
-    for (const section of ['A', 'B']) {
+    for (const day of state.days) {
       for (const bodyPart of BODY_PARTS) {
-        setRepPercentageOverride(week, section, bodyPart, blocks[week - 1]);
+        setRepPercentageOverride(week, day.id, bodyPart, blocks[week - 1]);
       }
     }
   }
@@ -191,10 +191,10 @@ function applyRandomRepProgression() {
   state.repProgression.overrides = {};
 
   for (let week = 1; week <= 6; week++) {
-    for (const section of ['A', 'B']) {
+    for (const day of state.days) {
       for (const bodyPart of BODY_PARTS) {
         const rep = Math.round(Math.random() * 10) / 10;
-        setRepPercentageOverride(week, section, bodyPart, rep);
+        setRepPercentageOverride(week, day.id, bodyPart, rep);
       }
     }
   }
