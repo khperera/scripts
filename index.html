@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Lifting Tracker (A-Upper / A-Lower)</title>
+<title>LiftTracker</title>
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -67,29 +67,11 @@
 
   <!-- TEMPLATES -->
   <section id="page-templates" hidden>
-    <div class="grid grid-2">
-      <div class="card">
-        <h3>A-Upper Template</h3>
-        <div id="tmpl-a-upper"></div>
-        <button onclick="addTemplateRow('A-Upper')">+ Add Exercise</button>
-      </div>
-      <div class="card">
-        <h3>A-Lower Template</h3>
-        <div id="tmpl-a-lower"></div>
-        <button onclick="addTemplateRow('A-Lower')">+ Add Exercise</button>
-      </div>
-      <div class="card">
-        <h3>B-Upper Template</h3>
-        <div id="tmpl-b-upper"></div>
-        <button onclick="addTemplateRow('B-Upper')">+ Add Exercise</button>
-      </div>
-      <div class="card">
-        <h3>B-Lower Template</h3>
-        <div id="tmpl-b-lower"></div>
-        <button onclick="addTemplateRow('B-Lower')">+ Add Exercise</button>
-      </div>
+    <div id="templatesContainer" class="grid grid-2"></div>
+    <div class="row" style="gap:8px; margin-top:12px;">
+      <button id="addDayBtn" onclick="addDay()">+ Add Day</button>
+      <button id="resetBtn">Reset Templates</button>
     </div>
-    <button id="resetBtn">Reset Templates</button>
   </section>
 
   <!-- EXERCISES -->
@@ -225,12 +207,6 @@
           <thead>
             <tr>
               <th style="min-width:100px;">Body Part</th>
-              <th>W1-A</th><th>W1-B</th>
-              <th>W2-A</th><th>W2-B</th>
-              <th>W3-A</th><th>W3-B</th>
-              <th>W4-A</th><th>W4-B</th>
-              <th>W5-A</th><th>W5-B</th>
-              <th>W6-A</th><th>W6-B</th>
             </tr>
           </thead>
           <tbody></tbody>

@@ -4,46 +4,42 @@ function updateDayDropdown() {
   const daySelect = $('#day');
   daySelect.innerHTML = '';
 
-  const days = [
-    { value: `${week}-A-upper`, label: `Week ${week} - A Upper` },
-    { value: `${week}-A-lower`, label: `Week ${week} - A Lower` },
-    { value: `${week}-B-upper`, label: `Week ${week} - B Upper` },
-    { value: `${week}-B-lower`, label: `Week ${week} - B Lower` }
-  ];
-
-  days.forEach(day => {
+  state.days.forEach(day => {
     const option = document.createElement('option');
-    option.value = day.value;
-    option.textContent = day.label;
+    option.value = `${week}-${day.id}`;
+    option.textContent = `Week ${week} - ${day.name}`;
     daySelect.appendChild(option);
   });
 }
 
-function getTemplateKeyFromDayValue(dayValue) {
-  const [week, part, split] = dayValue.split('-');
-  return `${part}-${split.charAt(0).toUpperCase() + split.slice(1)}`;
+function getDayIdFromDayValue(dayValue) {
+  const parts = dayValue.split('-');
+  return Number(parts[1]);
+}
+
+function getDayName(dayId) {
+  const day = state.days.find(d => d.id === dayId);
+  return day ? day.name : '?';
 }
 
 function getCurrentDayIndex() {
-  const week = Number($('#week').value);
   const dayValue = $('#day').value;
-  const days = [`${week}-A-upper`, `${week}-A-lower`, `${week}-B-upper`, `${week}-B-lower`];
-  return days.indexOf(dayValue);
+  const dayId = getDayIdFromDayValue(dayValue);
+  return state.days.findIndex(d => d.id === dayId);
 }
 
 function advanceDay() {
   let week = Number($('#week').value);
   let currentIndex = getCurrentDayIndex();
 
-  if (currentIndex === 3) { // Last day (B Lower)
+  if (currentIndex === state.days.length - 1) { // Last day
     week = week === 6 ? 1 : week + 1;
     $('#week').value = week;
     updateDayDropdown();
-    $('#day').value = `${week}-A-upper`;
+    $('#day').value = `${week}-${state.days[0].id}`;
   } else {
     currentIndex++;
-    const days = [`${week}-A-upper`, `${week}-A-lower`, `${week}-B-upper`, `${week}-B-lower`];
-    $('#day').value = days[currentIndex];
+    $('#day').value = `${week}-${state.days[currentIndex].id}`;
   }
 
   renderToday();
@@ -55,15 +51,15 @@ function renderToday() {
 
   const week = Number($('#week').value) || 1;
   const dayValue = $('#day').value;
-  const templateKey = getTemplateKeyFromDayValue(dayValue);
-  const section = templateKey.split('-')[0]; // 'A' or 'B'
+  const dayId = getDayIdFromDayValue(dayValue);
+  const dayName = getDayName(dayId);
 
-  $('#todayTitle').textContent = `Week ${week} - ${templateKey.replace('-', ' ')}`;
+  $('#todayTitle').textContent = `Week ${week} - ${dayName}`;
 
   const container = $('#todayList');
   container.innerHTML = '';
 
-  const templateItems = state.templates[templateKey] || [];
+  const templateItems = state.templates[String(dayId)] || [];
 
   if (templateItems.length === 0) {
     container.innerHTML = '<div class="tiny">No exercises in this template yet.</div>';
@@ -75,10 +71,10 @@ function renderToday() {
     if (!exercise) return;
 
     // Get RPE from schedule (overrides template RPE)
-    const scheduledRPE = getRPEForExercise(week, section, exercise.cat);
+    const scheduledRPE = getRPEForExercise(week, dayId, exercise.cat);
 
     // Get target reps from rep progression
-    const targetReps = calculateTargetReps(exercise.id, week, section, exercise.cat);
+    const targetReps = calculateTargetReps(exercise.id, week, dayId, exercise.cat);
 
     let prescribedLoad = prescribeLoad(exercise.tm, targetReps, scheduledRPE, state.unit, state.settings.minJump);
     let prescribedSets = item.sets;
@@ -127,7 +123,7 @@ function renderToday() {
         rpe: rpe,
         e1rm: e1rm,
         week: week,
-        day: templateKey,
+        day: dayId,
         targetRpe: scheduledRPE // Store target for progression analysis
       });
 
@@ -153,20 +149,61 @@ function renderToday() {
 }
 
 function renderTemplates() {
-  const templateKeys = ['A-Upper', 'A-Lower', 'B-Upper', 'B-Lower'];
+  const container = $('#templatesContainer');
+  if (!container) return;
+  container.innerHTML = '';
 
-  templateKeys.forEach(templateKey => {
-    const containerId = `tmpl-${templateKey.toLowerCase().replace('-', '-')}`;
-    const container = $(`#${containerId}`);
-    if (!container) return;
+  state.days.forEach(day => {
+    const card = document.createElement('div');
+    card.className = 'card';
 
-    container.innerHTML = '';
+    // Header with editable name and delete button
+    const header = document.createElement('div');
+    header.className = 'row';
+    header.style.cssText = 'justify-content:space-between;align-items:center;margin-bottom:8px;';
 
-    const templateItems = state.templates[templateKey] || [];
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.value = day.name;
+    nameInput.style.cssText = 'font-size:1.1em;font-weight:bold;background:transparent;border:1px solid var(--muted);color:var(--text);padding:4px 8px;border-radius:6px;width:200px;';
+    nameInput.onchange = () => {
+      const newName = nameInput.value.trim();
+      if (newName) {
+        day.name = newName;
+        persist();
+        updateDayDropdown();
+      } else {
+        nameInput.value = day.name;
+      }
+    };
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete Day';
+    deleteBtn.style.cssText = 'color:var(--bad);border-color:var(--bad);';
+    deleteBtn.onclick = () => {
+      if (state.days.length <= 1) {
+        alert('You must have at least one day.');
+        return;
+      }
+      if (confirm(`Delete "${day.name}" and all its exercises?`)) {
+        state.days = state.days.filter(d => d.id !== day.id);
+        delete state.templates[String(day.id)];
+        persist();
+        renderTemplates();
+        updateDayDropdown();
+        renderToday();
+      }
+    };
+
+    header.appendChild(nameInput);
+    header.appendChild(deleteBtn);
+    card.appendChild(header);
+
+    // Exercise rows
+    const exercisesContainer = document.createElement('div');
+    const templateItems = state.templates[String(day.id)] || [];
 
     templateItems.forEach((item, index) => {
-      const exercise = state.exercises.find(ex => ex.id === item.exId);
-
       const row = document.createElement('div');
       row.className = 'row';
       row.style.marginBottom = '8px';
@@ -218,8 +255,18 @@ function renderTemplates() {
         renderTemplates();
       };
 
-      container.appendChild(row);
+      exercisesContainer.appendChild(row);
     });
+
+    card.appendChild(exercisesContainer);
+
+    // Add exercise button
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '+ Add Exercise';
+    addBtn.onclick = () => addTemplateRow(String(day.id));
+    card.appendChild(addBtn);
+
+    container.appendChild(card);
   });
 }
 
@@ -312,16 +359,16 @@ function renderRepProgression() { if (!$('#page-progression').hidden) renderProg
 function renderRepProgressionTable() {}
 function renderRepOverrideTable() {}
 
-function updateRepPercentageFromTable(week, section, bodyPart, value) {
+function updateRepPercentageFromTable(week, dayId, bodyPart, value) {
   const percentage = Number(value);
   const defaultPercentage = state.repProgression.defaults[bodyPart] || 0.5;
 
   if (percentage === defaultPercentage) {
     // Remove override if setting back to default
-    removeRepPercentageOverride(week, section, bodyPart);
+    removeRepPercentageOverride(week, dayId, bodyPart);
   } else {
     // Set override
-    setRepPercentageOverride(week, section, bodyPart, percentage);
+    setRepPercentageOverride(week, dayId, bodyPart, percentage);
   }
 
   if (!$('#page-progression').hidden) renderProgression();
@@ -335,16 +382,16 @@ function renderRPESchedule() { if (!$('#page-progression').hidden) renderProgres
 function renderRPEScheduleTable() {}
 function renderRPEOverrideTable() {}
 
-function updateRPEFromTable(week, section, bodyPart, value) {
+function updateRPEFromTable(week, dayId, bodyPart, value) {
   const rpe = Number(value);
   const defaultRPE = state.rpeSchedule.defaults[bodyPart] || 8.0;
 
   if (rpe === defaultRPE) {
     // Remove override if setting back to default
-    removeRPEOverride(week, section, bodyPart);
+    removeRPEOverride(week, dayId, bodyPart);
   } else {
     // Set override
-    setRPEOverride(week, section, bodyPart, rpe);
+    setRPEOverride(week, dayId, bodyPart, rpe);
   }
 
   if (!$('#page-progression').hidden) renderProgression();
@@ -352,12 +399,12 @@ function updateRPEFromTable(week, section, bodyPart, value) {
 }
 
 /* ---------- Action Functions ---------- */
-function addTemplateRow(templateKey) {
-  if (!state.templates[templateKey]) {
-    state.templates[templateKey] = [];
+function addTemplateRow(dayIdStr) {
+  if (!state.templates[dayIdStr]) {
+    state.templates[dayIdStr] = [];
   }
 
-  state.templates[templateKey].push({
+  state.templates[dayIdStr].push({
     exId: state.exercises[0]?.id || 0,
     reps: 5,
     rpe: 8.5,
@@ -366,6 +413,19 @@ function addTemplateRow(templateKey) {
 
   persist();
   renderTemplates();
+}
+
+function addDay() {
+  const name = prompt('Enter day name:');
+  if (!name || !name.trim()) return;
+
+  const dayId = state.nextDayId++;
+  state.days.push({ id: dayId, name: name.trim() });
+  state.templates[String(dayId)] = [];
+  persist();
+
+  renderTemplates();
+  updateDayDropdown();
 }
 
 function addExercise() {
