@@ -222,6 +222,12 @@ if (!state.exerciseRepRanges) {
   state.exerciseRepRanges = {};
 }
 
+// Ensure nextDayId exists (for backwards compatibility with states that have
+// days but were saved before nextDayId was introduced)
+if (state.days && (state.nextDayId === undefined || state.nextDayId === null)) {
+  state.nextDayId = state.days.length;
+}
+
 /* ---------- Utility Functions ---------- */
 function persist() {
   localStorage.setItem(STORE_KEY, JSON.stringify(state));

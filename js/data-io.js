@@ -61,11 +61,29 @@ async function importData(event) {
 
     // Validate imported data structure
     if (importedData && typeof importedData === 'object') {
+      // Fully replace state with imported data (not a merge) so stale
+      // properties like `days` don't linger when the imported file is
+      // an older export that doesn't include them.
+      Object.keys(state).forEach(key => { delete state[key]; });
       Object.assign(state, importedData);
 
       // Run migration if imported data is old format (no days array)
       if (!state.days) {
         migrateToCustomDays();
+      }
+
+      // Backwards-compat guards for fields added after the export was created
+      if (!state.rpeSchedule) {
+        state.rpeSchedule = JSON.parse(JSON.stringify(DEFAULT_STATE.rpeSchedule));
+      }
+      if (!state.repProgression) {
+        state.repProgression = JSON.parse(JSON.stringify(DEFAULT_STATE.repProgression));
+      }
+      if (!state.exerciseRepRanges) {
+        state.exerciseRepRanges = {};
+      }
+      if (state.nextDayId === undefined || state.nextDayId === null) {
+        state.nextDayId = state.days ? state.days.length : 0;
       }
 
       persist();
