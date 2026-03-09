@@ -33,7 +33,8 @@ function advanceDay() {
   let currentIndex = getCurrentDayIndex();
 
   if (currentIndex === state.days.length - 1) { // Last day
-    week = week === 6 ? 1 : week + 1;
+    const cycleLength = state.cycleLength || 6;
+    week = week === cycleLength ? 1 : week + 1;
     $('#week').value = week;
     updateDayDropdown();
     $('#day').value = `${week}-${state.days[0].id}`;
@@ -352,6 +353,8 @@ function renderSettings() {
   $('#upLowerStrong').value = state.settings.upLowerStrong;
   $('#upLowerSmall').value = state.settings.upLowerSmall;
   $('#downLower').value = state.settings.downLower;
+  $('#cycleLength').value = state.cycleLength || 6;
+  $('#week').max = state.cycleLength || 6;
 }
 
 // Legacy stubs — these tables were merged into the Progression tab
