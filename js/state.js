@@ -111,10 +111,12 @@ const DEFAULT_STATE = {
   log: []
 };
 
-// Load or initialize state
-let state = JSON.parse(localStorage.getItem(STORE_KEY)) || JSON.parse(JSON.stringify(DEFAULT_STATE));
+// State is populated asynchronously from SQLite in initDatabase() (db.js),
+// called during DOMContentLoaded in app.js. DEFAULT_STATE is the safe placeholder.
+let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
 
 // Migration: convert old fixed A/B template system to custom days
+// Called by importData() (data-io.js) when importing a pre-custom-days export.
 function migrateToCustomDays() {
   if (state.days) return; // Already migrated
 
@@ -204,33 +206,14 @@ function migrateToCustomDays() {
   persist();
 }
 
-// Run migration
-migrateToCustomDays();
-
-// Ensure RPE schedule exists in loaded state (for backwards compatibility)
-if (!state.rpeSchedule) {
-  state.rpeSchedule = JSON.parse(JSON.stringify(DEFAULT_STATE.rpeSchedule));
-}
-
-// Ensure rep progression exists in loaded state (for backwards compatibility)
-if (!state.repProgression) {
-  state.repProgression = JSON.parse(JSON.stringify(DEFAULT_STATE.repProgression));
-}
-
-// Ensure exercise rep ranges exist (for backwards compatibility)
-if (!state.exerciseRepRanges) {
-  state.exerciseRepRanges = {};
-}
-
-// Ensure nextDayId exists (for backwards compatibility with states that have
-// days but were saved before nextDayId was introduced)
-if (state.days && (state.nextDayId === undefined || state.nextDayId === null)) {
-  state.nextDayId = state.days.length;
-}
-
 /* ---------- Utility Functions ---------- */
 function persist() {
-  localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  if (window._liftDb) {
+    persistToSQLite(window._liftDb, state);
+  } else {
+    // Fallback: DB not yet initialized (e.g. during initial migration)
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  }
 }
 
 function $(selector) {
