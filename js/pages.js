@@ -83,10 +83,7 @@ function renderToday() {
     let prescribedSets_myo = 13;
     let prescribedLoad_myo = prescribeLoad(exercise.tm, prescribedSets_myo, scheduledRPE, state.unit, state.settings.minJump);
 
-    // Apply deload if week 6
-    [prescribedLoad, prescribedSets] = applyDeload(week, prescribedLoad, prescribedSets);
-
-    const exerciseCard = document.createElement('div');
+const exerciseCard = document.createElement('div');
     exerciseCard.className = 'card';
     exerciseCard.innerHTML = `
       <div class="row" style="justify-content: space-between; align-items: center;">
