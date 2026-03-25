@@ -7,12 +7,16 @@ BODY_PARTS.forEach(bp => { progressionVisibility[bp] = true; });
 
 /**
  * Felt load: actual load / 1RM.
- * rep% maps to prescribed reps (3–12 range), then Brzycki gives W/1RM directly.
- * RIR is not included — it represents unused capacity, not load on the bar.
+ * rep% maps to prescribed reps (3–12 range). RPE determines RIR (10 - rpe),
+ * which is added to prescribed reps to get effective reps-to-failure.
+ * Brzycki then gives W/1RM at that rep-to-failure count.
+ * Higher RPE → fewer reps in reserve → higher felt load.
  */
 function computeLoadFactor(rpe, repPct) {
   const reps = repPct * 9 + 3;
-  const raw = 1.0278 - 0.0278 * reps;
+  const rir = 10 - rpe;
+  const repsToFailure = reps + rir;
+  const raw = 1.0278 - 0.0278 * repsToFailure;
   return Math.min(1, Math.max(0, raw));
 }
 
