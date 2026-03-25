@@ -57,12 +57,6 @@ function prescribeLoad(trainingMax, reps, rpe, unit, minJump) {
 
 }
 
-function applyDeload(week, load, sets) {
-  if (week === (state.cycleLength || 6)) {
-    return [load * 0.875, Math.max(1, sets - 1)];
-  }
-  return [load, sets];
-}
 
 function getNextSetAdjustment(targetRpe, actualRpe, repsCompleted, targetReps) {
   if (!repsCompleted || repsCompleted < targetReps || actualRpe >= targetRpe + 1.0) {

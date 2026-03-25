@@ -112,8 +112,7 @@ function applyRandomProgression() {
   for (let week = 1; week <= cycleLength; week++) {
     for (const day of state.days) {
       for (const bodyPart of BODY_PARTS) {
-        let rpe = Math.round((Math.random() * 2 + 8) * 2) / 2;
-        if (week === cycleLength) rpe = 8.0; // deload week - keep it manageable
+        const rpe = Math.round((Math.random() * 2 + 8) * 2) / 2;
         setRPEOverride(week, day.id, bodyPart, rpe);
       }
     }
