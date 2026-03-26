@@ -1,0 +1,14 @@
+android
+node_modules
+tests
+.git
+.github
+.vscode
+www
+lifttracker-*.json
+package.json
+package-lock.json
+playwright.config.js
+capacitor.config.json
+CLAUDE.md
+README.md

@@ -1,10 +1,18 @@
 {
-  "name": "lifttracker-tests",
+  "name": "lifttracker",
   "version": "1.0.0",
   "scripts": {
-    "test": "PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright playwright test"
+    "test": "PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright playwright test",
+    "build": "rm -rf www && mkdir -p www && cp index.html www/ && cp -r css www/ && cp -r js www/",
+    "cap:sync": "npm run build && cap sync",
+    "cap:build": "npm run build && cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^6.0.0",
     "@playwright/test": "1.56.1"
   }
 }
