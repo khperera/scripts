@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LiftTracker</string>
+    <string name="title_activity_main">LiftTracker</string>
+    <string name="package_name">com.lifttracker.app</string>
+    <string name="custom_url_scheme">com.lifttracker.app</string>
+</resources>
