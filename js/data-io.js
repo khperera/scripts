@@ -43,18 +43,34 @@ function resetTemplates() {
   }
 }
 
-function exportData() {
+async function exportData() {
   const dataStr = JSON.stringify(state, null, 2);
+  const filename = `lifttracker-${new Date().toISOString().split('T')[0]}.json`;
   const blob = new Blob([dataStr], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
 
+  // Android WebView (Capacitor) cannot download blob URLs via anchor click.
+  // Use the Web Share API instead, which opens the native share sheet on Android.
+  if (navigator.canShare) {
+    const file = new File([blob], filename, { type: 'application/json' });
+    if (navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'LiftTracker Data' });
+        return;
+      } catch (e) {
+        if (e.name !== 'AbortError') throw e;
+        return;
+      }
+    }
+  }
+
+  // Desktop browsers: standard blob URL download
+  const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `lifttracker-${new Date().toISOString().split('T')[0]}.json`;
+  link.download = filename;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-
   URL.revokeObjectURL(url);
 }
 
