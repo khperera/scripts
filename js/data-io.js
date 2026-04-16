@@ -48,8 +48,26 @@ async function exportData() {
   const filename = `lifttracker-${new Date().toISOString().split('T')[0]}.json`;
   const blob = new Blob([dataStr], { type: 'application/json' });
 
-  // Android WebView (Capacitor) cannot download blob URLs via anchor click.
-  // Use the Web Share API instead, which opens the native share sheet on Android.
+  // Capacitor (Android APK): write directly to the device Downloads folder.
+  // EXTERNAL_STORAGE + 'Download/' prefix resolves to the shared Downloads directory.
+  const fs = window.Capacitor?.Plugins?.Filesystem;
+  if (fs) {
+    try {
+      await fs.writeFile({
+        path: `Download/${filename}`,
+        data: dataStr,
+        directory: 'EXTERNAL_STORAGE',
+        encoding: 'utf8',
+        recursive: true,
+      });
+      alert(`Saved to Downloads/${filename}`);
+      return;
+    } catch (_) {
+      // Filesystem unavailable or permission denied — fall through
+    }
+  }
+
+  // Web Share API (Android share sheet, iOS share sheet).
   if (navigator.canShare) {
     const file = new File([blob], filename, { type: 'application/json' });
     if (navigator.canShare({ files: [file] })) {
@@ -57,13 +75,12 @@ async function exportData() {
         await navigator.share({ files: [file], title: 'LiftTracker Data' });
         return;
       } catch (e) {
-        if (e.name !== 'AbortError') throw e;
-        return;
+        if (e.name === 'AbortError') return;
       }
     }
   }
 
-  // Desktop browsers: standard blob URL download
+  // Desktop browsers: standard blob URL download.
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
