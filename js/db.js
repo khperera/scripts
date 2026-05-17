@@ -77,10 +77,11 @@ function writeStateToDb(db, s) {
   db.run('DELETE FROM log');
 
   // meta
-  db.run('INSERT INTO meta VALUES (?,?)', ['unit',      s.unit]);
-  db.run('INSERT INTO meta VALUES (?,?)', ['nextId',    String(s.nextId)]);
-  db.run('INSERT INTO meta VALUES (?,?)', ['nextDayId', String(s.nextDayId)]);
-  db.run('INSERT INTO meta VALUES (?,?)', ['settings',  JSON.stringify(s.settings)]);
+  db.run('INSERT INTO meta VALUES (?,?)', ['unit',        s.unit]);
+  db.run('INSERT INTO meta VALUES (?,?)', ['nextId',      String(s.nextId)]);
+  db.run('INSERT INTO meta VALUES (?,?)', ['nextDayId',   String(s.nextDayId)]);
+  db.run('INSERT INTO meta VALUES (?,?)', ['settings',    JSON.stringify(s.settings)]);
+  db.run('INSERT INTO meta VALUES (?,?)', ['cycleLength', String(s.cycleLength || 6)]);
 
   for (const ex of s.exercises) {
     db.run('INSERT INTO exercises VALUES (?,?,?,?)', [ex.id, ex.name, ex.cat, ex.tm]);
@@ -138,10 +139,11 @@ function readStateFromDb(db) {
   if (metaRes.length) {
     for (const row of metaRes[0].values) meta[row[0]] = row[1];
   }
-  s.unit      = meta.unit      || 'lb';
-  s.nextId    = Number(meta.nextId    || 1);
-  s.nextDayId = Number(meta.nextDayId || 4);
-  s.settings  = meta.settings
+  s.unit        = meta.unit        || 'lb';
+  s.nextId      = Number(meta.nextId      || 1);
+  s.nextDayId   = Number(meta.nextDayId   || 4);
+  s.cycleLength = Number(meta.cycleLength || 6);
+  s.settings    = meta.settings
     ? JSON.parse(meta.settings)
     : JSON.parse(JSON.stringify(DEFAULT_STATE.settings));
 
