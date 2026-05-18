@@ -123,10 +123,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderTabs();
 
   // Initialize SQLite, load (or migrate) state
-  const { db, loadedState } = await initDatabase();
-  window._liftDb = db;
-  Object.keys(state).forEach(k => delete state[k]);
-  Object.assign(state, loadedState);
+  try {
+    const { db, loadedState } = await initDatabase();
+    window._liftDb = db;
+    Object.keys(state).forEach(k => delete state[k]);
+    Object.assign(state, loadedState);
+  } catch (_) {
+    // SQLite unavailable (e.g. WASM blocked in Capacitor WebView) — fall back to localStorage
+    const saved = localStorage.getItem(STORE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        Object.keys(state).forEach(k => delete state[k]);
+        Object.assign(state, parsed);
+        migrateLegacyState(state);
+        applyCompatGuards(state);
+      } catch (_2) { /* keep DEFAULT_STATE */ }
+    }
+  }
 
   // Complete initialization now that state is ready
   updateDayDropdown();
