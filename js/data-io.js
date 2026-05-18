@@ -48,10 +48,10 @@ async function exportData() {
   const filename = `lifttracker-${new Date().toISOString().split('T')[0]}.json`;
   const blob = new Blob([dataStr], { type: 'application/json' });
 
-  // Capacitor (Android APK): write directly to the device Downloads folder.
-  // EXTERNAL_STORAGE + 'Download/' prefix resolves to the shared Downloads directory.
+  // Capacitor (Android APK): write to device storage.
   const fs = window.Capacitor?.Plugins?.Filesystem;
   if (fs) {
+    // Android ≤10: shared Downloads folder via legacy external storage permission.
     try {
       await fs.writeFile({
         path: `Download/${filename}`,
@@ -62,9 +62,20 @@ async function exportData() {
       });
       alert(`Saved to Downloads/${filename}`);
       return;
-    } catch (_) {
-      // Filesystem unavailable or permission denied — fall through
-    }
+    } catch (_) {}
+
+    // Android 11+: app-specific external storage, no extra permissions required.
+    // Find it in Files → Internal Storage → Android → data → com.lifttracker.app → files
+    try {
+      await fs.writeFile({
+        path: filename,
+        data: dataStr,
+        directory: 'EXTERNAL',
+        encoding: 'utf8',
+      });
+      alert(`Saved to app files folder.\n\nIn Files app: Internal Storage → Android → data → com.lifttracker.app → files → ${filename}`);
+      return;
+    } catch (_) {}
   }
 
   // Web Share API (Android share sheet, iOS share sheet).
