@@ -315,7 +315,6 @@ function attachProgressionTableListeners() {
 }
 
 function renderProgression() {
-  renderLoadSpacingFocus();
   const isFirst = (rpeChartInstance === null);
   renderProgressionToggles();
   renderProgressionTable();

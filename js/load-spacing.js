@@ -20,18 +20,24 @@ function scoreLoadTimeline(points, options = {}) {
   const heaviness = points.map(p => p.deload || span <= 0 ? 0 : Math.max(0, Math.min(1, (p.effectiveLoad - low) / span)) ** 2);
   // Smooth penalty covers all loads, not just those above the top-third cutoff.
   // Stronger sessions contribute more; nearby sessions cost more (1 / gap²).
-  let closeLoadPenalty = 0, variation = 0, successiveRepeats = 0;
+  let closeLoadPenalty = 0, variation = 0, successiveRepeats = 0, maxCloseness = 0, transitions = 0;
   for (let i = 0; i < points.length; i++) {
     for (let j = i + 1; j < points.length; j++) {
       const gap = Math.min(j - i, points.length - (j - i));
       closeLoadPenalty += heaviness[i] * heaviness[j] / (gap * gap);
+      if (!points[i].deload && !points[j].deload) maxCloseness += 1 / (gap * gap);
     }
     const next = points[(i + 1) % points.length];
     if (points[i].deload && next.deload) continue;
+    transitions++;
     variation += Math.abs(points[i].effectiveLoad - next.effectiveLoad);
     if (points[i].weight === next.weight) successiveRepeats++;
   }
   return { closeLoadPenalty, heavyGapPenalty, variation, successiveRepeats, cutoff, targetGap,
+    normalizedCloseness: maxCloseness ? closeLoadPenalty / maxCloseness : 0,
+    normalizedHeavyGap: gaps.length ? heavyGapPenalty / (gaps.length * targetGap ** 2) : 0,
+    normalizedVariation: transitions && span > 0 ? variation / (transitions * span) : 0,
+    repeatRatio: transitions ? successiveRepeats / transitions : 0,
     heavyCount: heavy.length, requestedCount, gaps, heavy, peak: sorted[0] };
 }
 
@@ -97,8 +103,8 @@ function createLoadSpacingModel(data, options = {}) {
 function evaluateLoadSpacing(data, options = {}, model = createLoadSpacingModel(data, options)) {
   let weeklyRepeats = 0, imbalance = 0, noDayVariation = 0;
   let closeLoadPenalty = 0, heavyGapPenalty = 0, variation = 0, successiveRepeats = 0;
-  const exercises = [], testCoverage = {};
-  let testCoverageViolations = 0;
+  const exercises = [], testCoverage = {}, bodyParts = {};
+  let testCoverageViolations = 0, testTimingViolations = 0;
   for (const [id, entries] of model.byExercise) {
     const points = [];
     for (let week = 1; week <= model.weeks; week++) for (const entry of entries) points.push(model.point(entry, data, week));
@@ -107,7 +113,7 @@ function evaluateLoadSpacing(data, options = {}, model = createLoadSpacingModel(
     heavyGapPenalty += score.heavyGapPenalty;
     variation += score.variation;
     successiveRepeats += score.successiveRepeats;
-    exercises.push({ id, name: entries[0].ex.name, ...score, points });
+    exercises.push({ id, name: entries[0].ex.name, cat: entries[0].ex.cat, ...score, points });
     for (const entry of entries) {
       const weights = Array.from({ length: model.weeks }, (_, i) => model.point(entry, data, i + 1).weight);
       for (let i = 0; i < weights.length; i++) if (weights[i] === weights[(i + 1) % weights.length]) weeklyRepeats++;
@@ -135,20 +141,62 @@ function evaluateLoadSpacing(data, options = {}, model = createLoadSpacingModel(
     const total = tests.reduce((sum, test) => sum + test.count, 0);
     const min = Math.floor(total / variants.length), max = Math.ceil(total / variants.length);
     const violations = tests.reduce((sum, test) => sum + Math.max(0, min - test.count, test.count - max), 0);
-    testCoverage[cat] = { total, variants: tests, violations };
+    const workingWeeks = model.weeks - 1;
+    const weeklyTests = Array.from({ length: workingWeeks }, (_, index) => variants.reduce((count, variant) =>
+      count + (model.targets(data, index + 1, model.days[variant * 2].id, cat)[0] === 10 ? 1 : 0), 0));
+    const periods = Math.min(3, workingWeeks);
+    const periodTests = Array(periods).fill(0);
+    weeklyTests.forEach((count, index) => periodTests[Math.floor(index * periods / workingWeeks)] += count);
+    const periodMin = Math.floor(total / periods), periodMax = Math.ceil(total / periods);
+    const weekMin = Math.floor(total / workingWeeks), weekMax = Math.ceil(total / workingWeeks);
+    const testWeeks = weeklyTests.flatMap((count, index) => Array(count).fill(index + 1));
+    const minWeekGap = total > 1 ? Math.max(1, Math.floor(workingWeeks / total)) : 0;
+    const weekGaps = testWeeks.length > 1 ? testWeeks.map((week, index) =>
+      (testWeeks[(index + 1) % testWeeks.length] - week + model.weeks) % model.weeks) : [];
+    const timingViolations = periodTests.reduce((sum, count) => sum + Math.max(0, periodMin - count, count - periodMax), 0)
+      + weeklyTests.reduce((sum, count) => sum + Math.max(0, weekMin - count, count - weekMax), 0)
+      + weekGaps.reduce((sum, gap) => sum + Math.max(0, minWeekGap - gap) ** 2, 0);
+    testCoverage[cat] = { total, variants: tests, violations, weeklyTests, periodTests, testWeeks, weekGaps, timingViolations };
     testCoverageViolations += violations;
+    testTimingViolations += timingViolations;
+    // Each category gets one vote, irrespective of its number of exercises or
+    // scheduled appearances. Effort timing counts even for an unset exercise TM.
+    const categoryExercises = exercises.filter(ex => ex.cat === cat);
+    const mean = key => categoryExercises.length ? categoryExercises.reduce((sum, ex) => sum + ex[key], 0) / categoryExercises.length : 0;
+    const effort = [];
+    const weeklyEffort = Array.from({ length: workingWeeks }, (_, index) => {
+      const values = variants.map(variant => {
+        const rpe = model.targets(data, index + 1, model.days[variant * 2].id, cat)[0];
+        effort.push({ weight: rpe, effectiveLoad: (rpe - 7) / 3, deload: false });
+        return (rpe - 7) / 3;
+      });
+      return values.reduce((sum, value) => sum + value, 0) / values.length;
+    });
+    variants.forEach(() => effort.push({ weight: 7, effectiveLoad: 0, deload: true }));
+    const effortSpacing = scoreLoadTimeline(effort, { lowLoad: 0, highLoad: 1 });
+    const averageEffort = weeklyEffort.reduce((sum, value) => sum + value, 0) / workingWeeks;
+    const weeklyEffortVariance = weeklyEffort.reduce((sum, value) => sum + (value - averageEffort) ** 2, 0) / workingWeeks;
+    const loss = 200 * mean('normalizedHeavyGap') + 100 * mean('normalizedCloseness')
+      + 10 * mean('repeatRatio') - 5 * mean('normalizedVariation')
+      + 100 * effortSpacing.normalizedCloseness + 100 * weeklyEffortVariance;
+    bodyParts[cat] = { exercises: categoryExercises.length, loss, weeklyEffort, weeklyEffortVariance,
+      heavyGap: mean('normalizedHeavyGap'), loadCloseness: mean('normalizedCloseness'),
+      effortCloseness: effortSpacing.normalizedCloseness };
   }
   for (let w = 1; w < model.weeks; w++) for (const day of model.days) {
     const cats = new Set((data.templates[day.id] || []).map(item => model.byId.get(item.exId)?.cat).filter(cat => cat && cat !== 'ARMS'));
     if (cats.size > 1 && new Set([...cats].map(cat => model.targets(data, w, day.id, cat)[0])).size < 2) noDayVariation++;
   }
-  const focus = exercises.filter(ex => (options.focusExerciseIds || []).includes(ex.id));
-  const focusGapPenalty = focus.reduce((sum, ex) => sum + ex.heavyGapPenalty, 0);
-  const focusCloseLoadPenalty = focus.reduce((sum, ex) => sum + ex.closeLoadPenalty, 0);
-  const score = -10000 * (weeklyRepeats + imbalance + noDayVariation + testCoverageViolations) - 5000 * focusGapPenalty
-    - 200 * heavyGapPenalty - 100 * closeLoadPenalty - 300 * focusCloseLoadPenalty - 10 * successiveRepeats + 5 * variation;
+  const losses = Object.values(bodyParts).map(part => part.loss);
+  const meanBodyPartLoss = losses.reduce((sum, loss) => sum + loss, 0) / losses.length;
+  const worstBodyPartLoss = Math.max(...losses);
+  // Improve both the equal-weight average and the worst group. A priority lift
+  // cannot override fairness between chest, back, legs and shoulders.
+  const score = -10000 * (weeklyRepeats + imbalance + noDayVariation + testCoverageViolations + testTimingViolations)
+    - 100 * (meanBodyPartLoss + worstBodyPartLoss);
   return { score, weeklyRepeats, imbalance, noDayVariation, closeLoadPenalty, heavyGapPenalty,
-    focusGapPenalty, focusCloseLoadPenalty, successiveRepeats, variation, testCoverageViolations, testCoverage, exercises };
+    successiveRepeats, variation, testCoverageViolations, testTimingViolations, testCoverage,
+    bodyParts, meanBodyPartLoss, worstBodyPartLoss, exercises };
 }
 
 async function optimizeLoadSpacing(data, options = {}) {
@@ -163,19 +211,30 @@ async function optimizeLoadSpacing(data, options = {}) {
   const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
   function shuffle(values) { for (let i = values.length - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [values[i], values[j]] = [values[j], values[i]]; } return values; }
   const peakFloors = new Map(before.exercises.map(ex => [ex.id, ex.peak]));
-  const focusFloors = new Map(before.exercises.filter(ex => (options.focusExerciseIds || []).includes(ex.id)).map(ex => [ex.id, ex.heavyGapPenalty]));
+  const gapCeilings = new Map(before.exercises.map(ex => [ex.id, ex.heavyGapPenalty]));
+  const normalizedGapCeilings = new Map(before.exercises.map(ex => [ex.id, ex.normalizedHeavyGap]));
   // Put peak preservation into the search fitness as well as final validation;
   // otherwise the search could spend all its time in lower-load schedules that
   // look well spaced but can never be accepted.
   function fitness(result) {
-    const peakLoss = result.exercises.reduce((sum, ex) => sum + Math.max(0, peakFloors.get(ex.id) - ex.peak), 0);
-    return result.score - 100000 * peakLoss;
+    const peakLosses = Object.keys(result.bodyParts).map(cat => {
+      const exercises = result.exercises.filter(ex => ex.cat === cat);
+      return exercises.length ? exercises.reduce((sum, ex) => sum + Math.max(0, peakFloors.get(ex.id) - ex.peak), 0) / exercises.length : 0;
+    });
+    const peakLoss = peakLosses.reduce((sum, loss) => sum + loss, 0) / peakLosses.length;
+    const gapLosses = Object.keys(result.bodyParts).map(cat => {
+      const exercises = result.exercises.filter(ex => ex.cat === cat);
+      return exercises.length ? exercises.reduce((sum, ex) => sum + Math.max(0, ex.normalizedHeavyGap - normalizedGapCeilings.get(ex.id)), 0) / exercises.length : 0;
+    });
+    const gapLoss = gapLosses.reduce((sum, loss) => sum + loss, 0) / gapLosses.length;
+    return result.score - 100000 * (peakLoss + gapLoss);
   }
   function admissible(result) {
     return result.weeklyRepeats <= before.weeklyRepeats && result.imbalance === 0 && result.noDayVariation <= before.noDayVariation
       && result.testCoverageViolations <= before.testCoverageViolations
-      && result.exercises.every(ex => ex.peak + 1e-9 >= peakFloors.get(ex.id))
-      && result.exercises.every(ex => !focusFloors.has(ex.id) || ex.heavyGapPenalty <= focusFloors.get(ex.id));
+      && result.testTimingViolations <= before.testTimingViolations
+      && result.exercises.every(ex => ex.peak + 1e-9 >= peakFloors.get(ex.id)
+        && ex.heavyGapPenalty <= gapCeilings.get(ex.id));
   }
   let accepted = before;
   for (let gi = 0; gi < groups.length; gi++) {
@@ -225,30 +284,110 @@ async function optimizeLoadSpacing(data, options = {}) {
       }
     }
     let best = { r: [...r], p: [...p], result: accepted };
+    // First try complete prescription permutations. Moving RPE and reps
+    // together preserves each lift's weight distribution and peak, allowing
+    // the week constraints to be solved without lowering its heaviest load.
+    if (workingWeeks <= 6 && cats.every(cat => !accepted.testCoverage[cat]?.violations)) {
+      const permutations = [];
+      function permute(order, remaining) {
+        if (!remaining.length) { permutations.push(order); return; }
+        remaining.forEach((value, index) => permute([...order, value], remaining.filter((_, i) => i !== index)));
+      }
+      permute([], Array.from({ length: workingWeeks }, (_, index) => index));
+      const domains = Array.from({ length: pairs }, (_, pair) => {
+        const entries = model.entries.filter(entry => cats.includes(entry.ex.cat) && Math.floor(entry.dayIndex / 2) === pair);
+        const originals = entries.map(entry => Array.from({ length: model.weeks }, (_, index) => model.point(entry, candidate, index + 1)));
+        return shuffle(permutations.filter(order => entries.every((entry, index) => {
+          const points = [...order.map((week, i) => ({ ...originals[index][week], week: i + 1 })), originals[index][workingWeeks]];
+          if (points.some((point, i) => point.weight === points[(i + 1) % points.length].weight)) return false;
+          if (model.byExercise.get(entry.ex.id).length !== 1) return true;
+          return scoreLoadTimeline(points, { ...options, ...model.possibleBounds.get(entry.ex.id) }).heavyGapPenalty <= gapCeilings.get(entry.ex.id);
+        })).map(order => ({ order, tests: cats.map((cat, ci) => order.flatMap((week, index) => {
+          const rpe = ci === 0 ? r[week * pairs + pair] : 17 - r[week * pairs + pair];
+          return rpe === 10 ? [index + 1] : [];
+        })) })));
+      });
+      const rr = [...r], pp = [...p], testWeeks = cats.map(() => []);
+      let examined = 0;
+      const budget = options.permutationBudget ?? 3000;
+      function compatible(ci, weeks) {
+        const coverage = accepted.testCoverage[cats[ci]];
+        if (!coverage) return true;
+        const periods = Math.min(3, workingWeeks), periodMax = Math.ceil(coverage.total / periods);
+        const weekMax = Math.ceil(coverage.total / workingWeeks);
+        const minGap = coverage.total > 1 ? Math.max(1, Math.floor(workingWeeks / coverage.total)) : 0;
+        const counts = Array(workingWeeks).fill(0), periodCounts = Array(periods).fill(0);
+        for (const week of weeks) {
+          if (++counts[week - 1] > weekMax || ++periodCounts[Math.floor((week - 1) * periods / workingWeeks)] > periodMax) return false;
+        }
+        for (let i = 0; i < weeks.length; i++) for (let j = i + 1; j < weeks.length; j++) {
+          const distance = Math.abs(weeks[i] - weeks[j]);
+          if (Math.min(distance, model.weeks - distance) < minGap) return false;
+        }
+        return true;
+      }
+      async function visit(pair) {
+        if (examined >= budget) return;
+        if (pair === pairs) {
+          examined++;
+          write(rr, pp);
+          const result = evaluateLoadSpacing(candidate, options, model);
+          if (admissible(result) && result.score > best.result.score) best = { r: [...rr], p: [...pp], result };
+          if (examined % 100 === 0) await new Promise(resolve => setTimeout(resolve, 0));
+          return;
+        }
+        for (const domain of domains[pair]) {
+          if (examined >= budget) break;
+          if (!cats.every((cat, ci) => compatible(ci, [...testWeeks[ci], ...domain.tests[ci]]))) continue;
+          const lengths = testWeeks.map(weeks => weeks.length);
+          cats.forEach((cat, ci) => testWeeks[ci].push(...domain.tests[ci]));
+          domain.order.forEach((week, index) => {
+            rr[index * pairs + pair] = r[week * pairs + pair];
+            pp[index * pairs + pair] = p[week * pairs + pair];
+          });
+          await visit(pair + 1);
+          testWeeks.forEach((weeks, ci) => weeks.length = lengths[ci]);
+        }
+      }
+      await visit(0);
+    }
     for (let restart = 0; restart < restarts; restart++) {
-      let rr = restart === 0 ? [...r] : shuffle([...r]), pp = [...p];
+      let rr = restart === 0 ? [...best.r] : shuffle([...r]), pp = restart === 0 ? [...best.p] : [...p];
       spreadTests(rr);
       if (restart) for (let pair = 0; pair < pairs; pair++) {
         const values = shuffle(Array.from({ length: workingWeeks }, (_, w) => p[w * pairs + pair]));
         values.forEach((v, w) => pp[w * pairs + pair] = v);
+        // Seed peak-compatible endpoint prescriptions. Swaps preserve the exact
+        // rep marginal; the search can subsequently move whole prescriptions.
+        for (const value of failureValues) {
+          const endpoint = value === 10 ? Math.min(...values) : Math.max(...values);
+          const target = rr.findIndex((rpe, index) => index % pairs === pair && rpe === value);
+          const source = pp.findIndex((pct, index) => index % pairs === pair && pct === endpoint);
+          if (target >= 0 && source >= 0) [pp[target], pp[source]] = [pp[source], pp[target]];
+        }
       }
       write(rr, pp);
       let current = evaluateLoadSpacing(candidate, options, model);
       for (let i = 0; i < iterations; i++) {
-        const vector = random() < 0.5 ? rr : pp, a = Math.floor(random() * r.length);
+        const bundle = random() < 1 / 3;
+        const vector = bundle || random() < 0.5 ? rr : pp, a = Math.floor(random() * r.length);
         // Rep swaps stay in the same pair, preserving every day/category's
         // exact marginal rep distribution. RPE swaps preserve its shared pool.
-        const b = vector === pp ? Math.floor(random() * workingWeeks) * pairs + a % pairs : Math.floor(random() * r.length);
+        const b = bundle || vector === pp ? Math.floor(random() * workingWeeks) * pairs + a % pairs : Math.floor(random() * r.length);
         // Once test coverage is spread, failure-target swaps stay in a variant.
         // Other RPE swaps still explore the full pool and retain its distribution.
         if (vector === rr && a % pairs !== b % pairs &&
           (failureValues.includes(rr[a]) || failureValues.includes(rr[b]))) continue;
         [vector[a], vector[b]] = [vector[b], vector[a]];
+        if (bundle) [pp[a], pp[b]] = [pp[b], pp[a]];
         write(rr, pp);
         const result = evaluateLoadSpacing(candidate, options, model);
         const temperature = 800 * Math.pow(0.0001, i / iterations);
         if (fitness(result) >= fitness(current) || random() < Math.exp((fitness(result) - fitness(current)) / temperature)) current = result;
-        else [vector[a], vector[b]] = [vector[b], vector[a]];
+        else {
+          [vector[a], vector[b]] = [vector[b], vector[a]];
+          if (bundle) [pp[a], pp[b]] = [pp[b], pp[a]];
+        }
         if (admissible(current) && current.score > best.result.score) best = { r: [...rr], p: [...pp], result: current };
         if (i % 100 === 0) {
           options.onProgress?.({ group: gi + 1, groups: groups.length, restart: restart + 1, restarts });
@@ -259,20 +398,21 @@ async function optimizeLoadSpacing(data, options = {}) {
     write(best.r, best.p);
     accepted = evaluateLoadSpacing(candidate, options, model);
   }
-  if (!admissible(accepted) || accepted.testCoverageViolations !== 0 || accepted.score < before.score)
-    throw new Error('Could not spread the 0-RIR tests and heavy sessions while preserving your schedule rules.');
+  if (!admissible(accepted) || accepted.testCoverageViolations !== 0 || accepted.testTimingViolations !== 0 || accepted.score < before.score) {
+    const error = new Error('Could not spread the 0-RIR tests and heavy sessions while preserving your schedule rules.');
+    error.optimizationMetrics = accepted;
+    throw error;
+  }
   return { state: candidate, before, after: accepted };
 }
 
 async function applyLoadSpacingOptimization() {
   const button = $('#spreadHeavySessions'), status = $('#loadSpacingStatus');
-  const focusId = Number($('#loadSpacingFocus').value);
   button.disabled = true;
   status.textContent = 'Spreading heavier sessions…';
   const snapshot = JSON.stringify(state);
   try {
     const result = await optimizeLoadSpacing(state, {
-      focusExerciseIds: focusId ? [focusId] : [],
       onProgress: p => { status.textContent = `Spreading heavier sessions (${p.group}/${p.groups})…`; }
     });
     if (JSON.stringify(state) !== snapshot) throw new Error('Your schedule changed during the search. Run it again to use the latest targets.');
@@ -281,20 +421,10 @@ async function applyLoadSpacingOptimization() {
     persist();
     renderToday();
     renderProgression();
-    status.textContent = 'Finished. Heavier sessions are spread across workout order, and 0-RIR tests are shared across workout variants. Your distributions and deload are preserved.';
+    status.textContent = 'Finished. All body-part groups receive equal priority. 0-RIR tests are spread across workout variants and early, middle and late working weeks. Your distributions and deload are preserved.';
   } catch (error) {
     status.textContent = error.message;
   } finally { button.disabled = false; }
-}
-
-function renderLoadSpacingFocus() {
-  const select = $('#loadSpacingFocus');
-  if (!select) return;
-  const selected = select.value;
-  const activeIds = new Set(Object.values(state.templates).flat().map(item => item.exId));
-  select.replaceChildren(new Option('All exercises', ''));
-  for (const ex of state.exercises) if (activeIds.has(ex.id) && ex.tm > 0) select.add(new Option(ex.name, String(ex.id)));
-  if ([...select.options].some(option => option.value === selected)) select.value = selected;
 }
 
 if (typeof module !== 'undefined') module.exports = { scoreLoadTimeline, createLoadSpacingModel, evaluateLoadSpacing, optimizeLoadSpacing };

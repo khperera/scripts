@@ -102,16 +102,59 @@ test('incompatible opposing schedules fail without changing the input', async ()
   assert.equal(JSON.stringify(s), snapshot);
 });
 
-test('priority bench optimization separates heavy exposures without reducing its peak', async () => {
+test('equal group optimization preserves bench peak and does not worsen heavy spacing', async () => {
   const s = fixture();
-  const result = await optimizeLoadSpacing(s, { ...options, focusExerciseIds: [1], seed: 20261007, restarts: 4, iterations: 2500 });
+  const result = await optimizeLoadSpacing(s, { ...options, seed: 20261007, restarts: 4, iterations: 2500 });
   const before = result.before.exercises.find(ex => ex.id === 1);
   const after = result.after.exercises.find(ex => ex.id === 1);
   assert(before.heavyGapPenalty > 0);
-  assert.equal(after.heavyGapPenalty, 0);
-  assert(after.gaps.every(gap => gap >= 3));
+  assert(after.heavyGapPenalty <= before.heavyGapPenalty);
+  assert.equal(result.after.testTimingViolations, 0);
   assert(after.peak >= before.peak);
   assert(result.after.score > result.before.score);
+});
+
+test('body-part scores do not favor groups with more copies of an exercise', () => {
+  const s = fixture(), before = evaluateLoadSpacing(s, options);
+  s.exercises.push({ ...s.exercises.find(ex => ex.id === 2), id: 20 });
+  s.exerciseRepRanges[20] = { ...s.exerciseRepRanges[2] };
+  for (const items of Object.values(s.templates)) if (items.some(item => item.exId === 2)) items.push({ exId: 20 });
+  const after = evaluateLoadSpacing(s, options);
+  assert.equal(after.bodyParts.BACK.loss, before.bodyParts.BACK.loss);
+  assert.equal(after.meanBodyPartLoss, before.meanBodyPartLoss);
+  assert.equal(after.worstBodyPartLoss, before.worstBodyPartLoss);
+});
+
+test('a focus option cannot give bench extra weight over other body parts', () => {
+  const s = fixture();
+  assert.equal(evaluateLoadSpacing(s, options).score, evaluateLoadSpacing(s, { ...options, focusExerciseIds: [1] }).score);
+});
+
+test('back tests clustered at the end must spread across working weeks and variants', async () => {
+  const s = fixture();
+  for (let pair = 0; pair < 3; pair++) {
+    const source = Array.from({ length: 6 }, (_, index) => index + 1).find(week => s.rpeSchedule.overrides[`${week}-${pair * 2}-BACK`] === 10);
+    const displaced = s.rpeSchedule.overrides[`6-${pair * 2}-CHEST`];
+    for (const day of [pair * 2, pair * 2 + 1]) {
+      s.rpeSchedule.overrides[`${source}-${day}-CHEST`] = displaced;
+      s.rpeSchedule.overrides[`${source}-${day}-BACK`] = 17 - displaced;
+      s.rpeSchedule.overrides[`6-${day}-CHEST`] = 7;
+      s.rpeSchedule.overrides[`6-${day}-BACK`] = 10;
+    }
+  }
+  const before = evaluateLoadSpacing(s, options);
+  assert.deepEqual(before.testCoverage.BACK.testWeeks, [6, 6, 6]);
+  assert.deepEqual(before.testCoverage.BACK.variants.map(variant => variant.count), [1, 1, 1]);
+  assert(before.testTimingViolations > 0);
+  const result = await optimizeLoadSpacing(s, { ...options, seed: 20261010, restarts: 4, iterations: 2500 });
+  assert.equal(result.after.testTimingViolations, 0);
+  for (const coverage of Object.values(result.after.testCoverage)) {
+    if (coverage.total === 3) {
+      assert.deepEqual(coverage.periodTests, [1, 1, 1]);
+      assert.deepEqual(coverage.variants.map(variant => variant.count), [1, 1, 1]);
+      assert(coverage.weekGaps.every(gap => gap >= 2));
+    }
+  }
 });
 
 test('load chart uses actual prescriptions and retains gaps for empty categories', () => {
