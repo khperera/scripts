@@ -72,8 +72,8 @@ scripts/
 
 ### Spread heavier sessions
 
-In Progression, choose an exercise to prioritize (or all exercises), then click
-**Spread heavy sessions**. This reorders the current paired schedules; chest/back
+In Progression, click **Spread heavy sessions**. Every active body-part group
+receives equal priority. This reorders the current paired schedules; chest/back
 and quads/hamstrings must already have complementary targets, and Upper/Lower
 pairs must share their targets. The final week remains the deload.
 
@@ -93,16 +93,26 @@ days in workout order, including the boundary into the next cycle.
 - Repeated weights, worse RIR distributions, and loss of within-day effort
   variation are penalized. The search retains each day's exact rep-position
   distribution, opposing categories, paired-day targets, and the final week.
-- A candidate is accepted only if it preserves each lift's existing peak load,
-  does not add repeated weekly weights, and does not worsen heavy spacing for
-  a selected priority lift. Remaining score rewards adjacent load variation.
+- Load metrics are normalized by each lift's number of appearances and averaged
+  within its body-part group. The score combines the equal-weight group average
+  with the worst group's loss, so more exercises or a preferred lift cannot
+  dominate the search. Effort closeness and weekly mean RPE variance also count.
+- A candidate is accepted only if it preserves every lift's existing peak load
+  and heavy-gap penalty, and does not add repeated weekly weights. Adjacent load
+  variation is normalized to the lift's possible load range and rewarded.
 - 0-RIR targets are evenly shared across the populated workout variants for each
   category. Three such targets mean exactly one on variant 1, one on variant 2,
   and one on variant 3. An Upper/Lower pair counts once, and deload is excluded.
   For other counts, variant totals differ by at most one. This is a required
   condition for the returned schedule, rather than an optional score bonus.
+- 0-RIR tests must also be balanced across early, middle and late working weeks.
+  With three tests in six working weeks, one falls in weeks 1–2, one in 3–4,
+  and one in 5–6, with at least two weeks between tests. They cannot all land
+  in the same week. Deload is excluded from test counts and provides separation.
 
 The deterministic search runs asynchronously so the interface remains usable.
+It first searches permutations of whole prescriptions, which preserve each
+lift's working weight distribution while moving its tests to different weeks.
 It searches for improvements and does not guarantee a global optimum. It
 changes only the RPE and rep schedules; registry entries, TMs and logs are intact.
 
