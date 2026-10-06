@@ -70,6 +70,45 @@ scripts/
 
 ## Testing
 
+### Spread heavier sessions
+
+In Progression, choose an exercise to prioritize (or all exercises), then click
+**Spread heavy sessions**. This reorders the current paired schedules; chest/back
+and quads/hamstrings must already have complementary targets, and Upper/Lower
+pairs must share their targets. The final week remains the deload.
+
+The metric in `js/load-spacing.js` uses each exercise's actual rep range,
+training max, and plate-rounded prescription. Effective load is
+`prescribed weight / training max`. It follows a lift across all its scheduled
+days in workout order, including the boundary into the next cycle.
+
+- The heaviest third of working appearances counts as heavy, including all ties.
+  Heavy exposures too close together incur a squared gap penalty.
+- Every working load also contributes to a continuous closeness penalty, so a
+  load just below the heavy cutoff still matters. Normalize the prescription
+  within that lift's possible load range, square this heaviness, and sum
+  `heaviness[i] * heaviness[j] / distance[i,j]^2` over every pair of appearances.
+  Distance is the shorter gap around the repeating cycle, in appearances of
+  that exercise. Deload exposures provide spacing and contribute zero heaviness.
+- Repeated weights, worse RIR distributions, and loss of within-day effort
+  variation are penalized. The search retains each day's exact rep-position
+  distribution, opposing categories, paired-day targets, and the final week.
+- A candidate is accepted only if it preserves each lift's existing peak load,
+  does not add repeated weekly weights, and does not worsen heavy spacing for
+  a selected priority lift. Remaining score rewards adjacent load variation.
+- 0-RIR targets are evenly shared across the populated workout variants for each
+  category. Three such targets mean exactly one on variant 1, one on variant 2,
+  and one on variant 3. An Upper/Lower pair counts once, and deload is excluded.
+  For other counts, variant totals differ by at most one. This is a required
+  condition for the returned schedule, rather than an optional score bonus.
+
+The deterministic search runs asynchronously so the interface remains usable.
+It searches for improvements and does not guarantee a global optimum. It
+changes only the RPE and rep schedules; registry entries, TMs and logs are intact.
+
+Run the metric and optimizer regression tests with `npm run test:load-spacing`.
+These use Node's built-in test runner and require no browser installation.
+
 Run Playwright E2E tests:
 
 ```bash

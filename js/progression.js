@@ -6,18 +6,18 @@ const progressionVisibility = {};
 BODY_PARTS.forEach(bp => { progressionVisibility[bp] = true; });
 
 /**
- * Felt load: actual load / 1RM.
- * rep% maps to prescribed reps (3–12 range). RPE determines RIR (10 - rpe),
- * which is added to prescribed reps to get effective reps-to-failure.
- * Brzycki then gives W/1RM at that rep-to-failure count.
- * Higher RPE → fewer reps in reserve → higher felt load.
+ * Average of actual plate-rounded load / TM for the scheduled exercises.
+ * Uses each exercise's rep range and the same prescription as Today.
  */
-function computeLoadFactor(rpe, repPct) {
-  const reps = repPct * 9 + 3;
-  const rir = 10 - rpe;
-  const repsToFailure = reps + rir;
-  const raw = 1.0278 - 0.0278 * repsToFailure;
-  return Math.min(1, Math.max(0, raw));
+function computeLoadFactor(rpe, repPct, exercises) {
+  const calibrated = exercises.filter(ex => ex.tm > 0);
+  if (!calibrated.length) return null;
+  const total = calibrated.reduce((sum, ex) => {
+    const range = getExerciseRepRange(ex.id);
+    const reps = Math.round(range.min + repPct * (range.max - range.min));
+    return sum + prescribeLoad(ex.tm, reps, rpe, state.unit, state.settings.minJump) / ex.tm;
+  }, 0);
+  return total / calibrated.length;
 }
 
 function buildProgressionDatasets(type) {
@@ -33,8 +33,13 @@ function buildProgressionDatasets(type) {
         let value;
         if (type === 'rpe')       value = rpe;
         else if (type === 'rep')  value = repPct;
-        else                      value = computeLoadFactor(rpe, repPct);
-        data.push(parseFloat(value.toFixed(3)));
+        else {
+          const exercises = (state.templates[String(day.id)] || [])
+            .map(item => state.exercises.find(ex => ex.id === item.exId))
+            .filter(ex => ex && ex.cat === bp);
+          value = computeLoadFactor(rpe, repPct, exercises);
+        }
+        data.push(value === null ? null : parseFloat(value.toFixed(3)));
       }
     }
     return {
@@ -123,7 +128,7 @@ function initProgressionCharts() {
   loadChartInstance = new Chart($('#loadChart').getContext('2d'), {
     type: 'line',
     data: { labels: labels, datasets: buildProgressionDatasets('load') },
-    options: progressionChartOptions('Felt Load %1RM', 0.5, 1.0, c => `${c.dataset.label}: ${(c.parsed.y * 100).toFixed(1)}%`),
+    options: progressionChartOptions('Prescribed Weight / 1RM', 0.5, 1.05, c => `${c.dataset.label}: ${(c.parsed.y * 100).toFixed(1)}%`),
   });
 }
 
@@ -310,6 +315,7 @@ function attachProgressionTableListeners() {
 }
 
 function renderProgression() {
+  renderLoadSpacingFocus();
   const isFirst = (rpeChartInstance === null);
   renderProgressionToggles();
   renderProgressionTable();

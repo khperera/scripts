@@ -198,10 +198,20 @@
       <div class="prog-chart-wrap"><canvas id="repChart"></canvas></div>
     </div>
 
+    <div class="card">
+      <h4>Spread heavier sessions</h4>
+      <p class="tiny">Use your exercise weights to spread heavier sessions across workout order. Keeps your target distributions, opposing muscle groups, and final deload week.</p>
+      <div class="row">
+        <label>Prioritize <select id="loadSpacingFocus"><option value="">All exercises</option></select></label>
+        <button id="spreadHeavySessions" onclick="applyLoadSpacingOptimization()">Spread heavy sessions</button>
+      </div>
+      <p id="loadSpacingStatus" class="tiny" role="status" aria-live="polite"></p>
+    </div>
+
     <!-- Load Chart -->
     <div class="card">
-      <h4>Felt Load (% of 1RM)</h4>
-      <p class="tiny">Actual load / 1RM via Brzycki — rep range 3–12 based on rep %.</p>
+      <h4>Prescribed Weight (% of 1RM)</h4>
+      <p class="tiny">Average prescribed weight relative to each exercise’s 1RM reference, using its rep range and rounded weight. Empty categories have no point.</p>
       <div class="prog-chart-wrap"><canvas id="loadChart"></canvas></div>
     </div>
 
@@ -316,6 +326,7 @@
 <script src="js/db.js"></script>
 <script src="js/calculations.js"></script>
 <script src="js/schedule.js"></script>
+<script src="js/load-spacing.js"></script>
 <script src="js/data-io.js"></script>
 <script src="js/pages.js"></script>
 <script src="js/progression.js"></script>
