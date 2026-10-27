@@ -12,6 +12,7 @@ let hevyRuntimeTemplateNames = {};
 let hevyRuntimeRoutines = {};
 let hevyPreview = null;
 let hevySyncBusy = false;
+let hevyImportBusy = false;
 
 function hevyIsAndroid() {
   return window.Capacitor?.getPlatform?.() === "android";
@@ -575,6 +576,9 @@ function hevyRenderCurrentState() {
     pieces.push("Last sync is pending since " + new Date(profile.lastSyncAttempt).toLocaleString() + ".");
   } else if (profile.lastSync) pieces.push("Last successful sync: " + new Date(profile.lastSync).toLocaleString() + ".");
   else pieces.push("No successful sync yet.");
+  if (profile.lastImportAt) {
+    pieces.push("Last Hevy history import: " + new Date(profile.lastImportAt).toLocaleString() + ", " + (profile.lastImportedSetCount || 0) + " sets; " + (profile.lastImportProgressed ? "Close Week was confirmed." : "Close Week progression was not applied."));
+  }
   $("#hevyCurrentState").textContent = pieces.join(" ");
 }
 function hevyValidateSetup(profile = hevyMeta()) {
@@ -889,6 +893,22 @@ function hevyTodaySync() {
   }
   return hevySyncAll("manual");
 }
+function hevyTodayImport() {
+  const profile = hevyMeta();
+  if (!hevyRuntimeAccount || !profile || String(profile.accountId) !== String(hevyRuntimeAccount)) {
+    $("#hevyWizard").hidden = false;
+    hevySetStatus("Connect to Hevy and finish exercise/day mapping before importing training history.");
+    $("#hevySettings").scrollIntoView?.({ behavior: "smooth", block: "start" });
+    return;
+  }
+  const mappingErrors = hevyValidateSetup(profile);
+  if (mappingErrors.length) {
+    hevySetStatus("Finish or review exercise and day mappings before importing training history. " + mappingErrors[0]);
+    $("#hevySettings").scrollIntoView?.({ behavior: "smooth", block: "start" });
+    return;
+  }
+  return hevyImport();
+}
 function renderHevyControls() {
   const profile = hevyMeta();
   const errors = hevyValidateSetup(profile);
@@ -896,58 +916,148 @@ function renderHevyControls() {
   $("#hevyTodaySync").disabled = hevySyncBusy;
   $("#hevyTodaySync").textContent = hevySyncBusy ? "Syncing Hevy…" : (profile?.enabled && !errors.length ? "Sync Hevy now" : "Set up Hevy sync");
 }
-function hevySaveImportSummary(records, summary, count) {
+function hevySaveImportSummary(records, summary, count, setCount) {
   const profile = hevyMeta();
   if (!profile) return;
   profile.imports = records;
-  profile.importedSummary = { best: summary, count };
+  profile.importedSummary = { best: summary, count, setCount };
   hevySave(profile);
 }
-function hevyRenderImport(summary, count) {
+function hevyRenderImport(summary, count, setCount = 0) {
   const lines = Object.values(summary || {}).map(item => item.name + ": " + item.value.toFixed(1) + " " + state.unit + " from " + item.weight.toFixed(1) + " " + state.unit + " × " + item.reps + " @ RPE " + item.rpe + " (" + item.workout + ", " + (item.date || "date unavailable") + ")");
-  $("#hevyResults").textContent = "Imported " + count + " workouts. Best imported estimated 1RM by exercise:\n" + (lines.join("\n") || "No eligible sets found.");
+  $("#hevyResults").textContent = "Imported " + setCount + " mapped working sets from " + count + " recent workouts into the LiftTracker log. Best imported estimated 1RM by exercise:\n" + (lines.join("\n") || "No eligible mapped sets found.");
+}
+function hevyImportLookbackWeeks() {
+  const requested = Number($("#hevyLookbackWeeks").value);
+  const weeks = Number.isInteger(requested) ? Math.min(6, Math.max(1, requested)) : 6;
+  $("#hevyLookbackWeeks").value = String(weeks);
+  return weeks;
+}
+function hevyBuildImportedLog(workouts, profile, now = Date.now(), weeks = 6) {
+  const cutoff = now - weeks * 7 * 86400000;
+  const localByTemplate = new Map(Object.entries(profile.exerciseMap || {}).map(([localId, templateId]) => [String(templateId), Number(localId)]));
+  const dayByRoutine = new Map(Object.entries(profile.dayRoutines || {}).map(([dayId, routineId]) => [String(routineId), Number(dayId)]));
+  const entries = [];
+  const recentWorkouts = {};
+  const best = {};
+  for (const workout of workouts) {
+    const timestamp = Date.parse(workout.start_time || workout.created_at || "");
+    if (!Number.isFinite(timestamp) || timestamp < cutoff || timestamp > now) continue;
+    const workoutId = String(workout.id || "");
+    if (!workoutId) continue;
+    recentWorkouts[workoutId] = workout;
+    const occurrences = new Map();
+    for (const exercise of workout.exercises || []) {
+      const templateId = String(exercise.exercise_template_id || exercise.id || "");
+      if (!localByTemplate.has(templateId)) continue;
+      const localId = localByTemplate.get(templateId);
+      const occurrence = occurrences.get(templateId) || 0;
+      occurrences.set(templateId, occurrence + 1);
+      (exercise.sets || []).forEach((set, setIndex) => {
+        const reps = Number(set.reps);
+        const weightKg = Number(set.weight_kg);
+        const type = String(set.type || "normal").toLowerCase();
+        if (!Number.isInteger(reps) || reps < 1 || !(weightKg > 0) || type === "warmup" || !["normal", "failure", "drop", "dropset", "myorep"].includes(type)) return;
+        const providedRpe = Number(set.rpe);
+        const rpe = Number.isFinite(providedRpe) && providedRpe >= 1 && providedRpe <= 10 ? providedRpe : 10;
+        const weight = state.unit === "lb" ? weightKg * 2.2046226218 : weightKg;
+        const id = templateId;
+        const e1rm = calculateE1RM(weight, reps, rpe);
+        const name = profile.templateNames?.[id] || exercise.title || exercise.name || id;
+        const sourcePrefix = "hevy:" + encodeURIComponent(String(profile.accountId)) + ":";
+        entries.push({
+          exId: localId,
+          date: new Date(timestamp).toISOString(),
+          weight,
+          reps,
+          rpe,
+          e1rm,
+          targetRpe: null,
+          day: dayByRoutine.get(String(workout.routine_id || workout.routine_template_id)) ?? null,
+          hevySourceKey: sourcePrefix + workoutId + ":" + id + ":" + occurrence + ":" + setIndex,
+        });
+        if (!best[id] || e1rm > best[id].value) best[id] = {
+          value: e1rm, name, date: workout.start_time || workout.created_at || "", rpe, weight, reps,
+          workout: workout.title || "Hevy workout",
+        };
+      });
+    }
+  }
+  return { entries, recentWorkouts, best, workoutCount: Object.keys(recentWorkouts).length, cutoff };
+}
+function hevyReplaceImportedLog(entries, accountId, rangeStart) {
+  const prefix = "hevy:" + encodeURIComponent(String(accountId)) + ":";
+  const cutoff = Date.parse(rangeStart);
+  state.log = state.log.filter(entry => {
+    if (!String(entry.hevySourceKey || "").startsWith(prefix)) return true;
+    const timestamp = Date.parse(entry.date);
+    return !Number.isFinite(cutoff) || !Number.isFinite(timestamp) || timestamp < cutoff;
+  });
+  state.log.push(...entries);
+  state.log.sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
 }
 async function hevyImport() {
+  if (hevyImportBusy) return;
   const output = $("#hevyResults");
-  output.textContent = "Loading workout history…";
+  const profile = hevyMeta();
+  if (!profile || !hevyRuntimeAccount || String(profile.accountId) !== String(hevyRuntimeAccount)) {
+    output.textContent = "Connect to the mapped Hevy account first.";
+    return;
+  }
+  const mappingErrors = hevyValidateSetup(profile);
+  if (mappingErrors.length) {
+    output.textContent = "Finish and verify exercise and day mappings before importing sets. " + mappingErrors[0];
+    return;
+  }
+  const weeks = hevyImportLookbackWeeks();
+  const importTime = Date.now();
+  hevyImportBusy = true;
+  $("#hevyImport").disabled = true;
+  $("#hevyTodayImport").disabled = true;
+  $("#hevyImport").textContent = "Importing recent history…";
+  $("#hevyTodayImport").textContent = "Importing Hevy history…";
+  output.textContent = "Loading Hevy workout history for the last " + weeks + " weeks…";
   try {
     const workouts = await hevyFetchPages("/api/hevy/workouts", null, "workouts", 10, 100);
-    const records = {};
+    const fullHistory = [];
     for (const listed of workouts) {
+      const listedAt = Date.parse(listed.start_time || listed.created_at || "");
+      if (Number.isFinite(listedAt) && (listedAt < importTime - weeks * 7 * 86400000 || listedAt > importTime)) continue;
       const detail = Array.isArray(listed.exercises) ? listed : await hevyRequest("/api/hevy/workouts/" + encodeURIComponent(listed.id));
       const workout = detail.workout || detail;
-      records[String(workout.id || listed.id)] = workout;
+      fullHistory.push({ ...workout, id: workout.id || listed.id });
     }
-    const profile = hevyMeta() || {};
-    const best = {};
-    const names = profile.templateNames || {};
-    for (const workout of Object.values(records)) for (const exercise of workout.exercises || []) for (const set of exercise.sets || []) {
-      const reps = Number(set.reps);
-      const weightKg = Number(set.weight_kg);
-      const type = String(set.type || "normal").toLowerCase();
-      if (!Number.isInteger(reps) || reps < 1 || !(weightKg > 0) || type === "warmup" || !["normal", "failure", "drop", "dropset", "myorep"].includes(type)) continue;
-      const providedRpe = Number(set.rpe);
-      const rpe = Number.isFinite(providedRpe) && providedRpe >= 1 && providedRpe <= 10 ? providedRpe : 10;
-      const weight = state.unit === "lb" ? weightKg * 2.2046226218 : weightKg;
-      const e1rm = calculateE1RM(weight, reps, rpe);
-      const id = String(exercise.exercise_template_id || exercise.id || "unknown");
-      if (!best[id] || e1rm > best[id].value) best[id] = {
-        value: e1rm,
-        name: names[id] || exercise.title || exercise.name || id,
-        date: workout.start_time || workout.created_at || "",
-        rpe,
-        weight,
-        reps,
-        workout: workout.title || "Hevy workout",
-      };
+    const imported = hevyBuildImportedLog(fullHistory, profile, importTime, weeks);
+    const previousRange = Date.parse(profile.importedRangeStart || "");
+    const rangeStart = new Date(Math.min(imported.cutoff, Number.isFinite(previousRange) ? previousRange : imported.cutoff)).toISOString();
+    hevyReplaceImportedLog(imported.entries, profile.accountId, rangeStart);
+    persist();
+    hevySaveImportSummary(imported.recentWorkouts, imported.best, imported.workoutCount, imported.entries.length);
+    profile.importedRangeStart = new Date(imported.cutoff).toISOString();
+    profile.importedLookbackWeeks = weeks;
+    profile.lastImportAt = new Date(importTime).toISOString();
+    profile.lastImportedSetCount = imported.entries.length;
+    profile.lastImportProgressed = false;
+    hevySave(profile);
+    hevyRenderImport(imported.best, imported.workoutCount, imported.entries.length);
+    if (imported.entries.length && typeof closeWeek === "function") {
+      profile.lastImportProgressed = closeWeek("Import added " + imported.entries.length + " mapped sets from the last " + weeks + " weeks. Close this week and progress Training Maxes using LiftTracker's existing rules?") === true;
     }
-    hevySaveImportSummary(records, best, workouts.length);
-    hevyRenderImport(best, workouts.length);
-  } catch (error) { output.textContent = error.message; }
+    hevySave(profile);
+    hevyRenderCurrentState();
+  } catch (error) {
+    output.textContent = error.message;
+  } finally {
+    hevyImportBusy = false;
+    $("#hevyImport").disabled = false;
+    $("#hevyTodayImport").disabled = false;
+    $("#hevyImport").textContent = "Import recent Hevy sets & close week";
+    $("#hevyTodayImport").textContent = "Import Hevy history & close week";
+  }
 }
 function hevyRenderCachedImport() {
   const profile = hevyMeta();
-  if (profile?.importedSummary) hevyRenderImport(profile.importedSummary.best, profile.importedSummary.count);
+  if (profile?.importedSummary) hevyRenderImport(profile.importedSummary.best, profile.importedSummary.count, profile.importedSummary.setCount || 0);
 }
 function renderHevy() {
   const profile = hevyMeta();
@@ -1039,6 +1149,7 @@ function initHevy() {
     hevySetStatus("Mappings cleared. Reconfirm exercises and days before syncing.");
   };
   $("#hevyImport").onclick = hevyImport;
+  $("#hevyTodayImport").onclick = hevyTodayImport;
   renderHevy();
   hevyRenderCurrentState();
   // Ignore legacy auto-sync preferences from earlier versions. Sync is command-only.

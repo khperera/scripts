@@ -199,23 +199,104 @@ test("Android requests use the session key in native HTTP and never call compani
   assert.equal(h.values.size, 0);
 });
 
-test("workout import computes e1RM with RPE 10 fallback and leaves training max unchanged", async () => {
+test("recent workout import maps only recent eligible sets and retains source IDs for reconciliation", () => {
+  const now = Date.parse("2026-10-27T12:00:00Z");
+  const h = context({ state: { unit: "lb" } });
+  vm.runInContext(fs.readFileSync("js/calculations.js", "utf8"), h.ctx);
+  const profile = {
+    accountId: "acct/1", exerciseMap: { 11: "bench" }, dayRoutines: { 1: "routine-a" },
+    templateNames: { bench: "Barbell Bench Press" },
+  };
+  const workouts = [
+    { id: "workout-1", title: "Recent", start_time: "2026-10-20T12:00:00Z", routine_id: "routine-a", exercises: [
+      { exercise_template_id: "bench", sets: [
+        { type: "warmup", weight_kg: 20, reps: 5, rpe: 5 },
+        { type: "normal", weight_kg: 100, reps: 3, rpe: 8 },
+        { type: "normal", weight_kg: 90, reps: 5 },
+      ] },
+      { exercise_template_id: "unmapped", sets: [{ weight_kg: 200, reps: 1 }] },
+    ] },
+    { id: "old", title: "Outside window", start_time: "2026-10-19T11:59:59Z", exercises: [
+      { exercise_template_id: "bench", sets: [{ weight_kg: 200, reps: 1 }] },
+    ] },
+    { id: "future", start_time: "2026-10-28T12:00:00Z", exercises: [
+      { exercise_template_id: "bench", sets: [{ weight_kg: 200, reps: 1 }] },
+    ] },
+  ];
+  h.ctx.workoutsUnderTest = workouts;
+  h.ctx.profileUnderTest = profile;
+  h.ctx.nowUnderTest = now;
+  const imported = vm.runInContext("hevyBuildImportedLog(workoutsUnderTest, profileUnderTest, nowUnderTest, 1)", h.ctx);
+  assert.equal(imported.workoutCount, 1);
+  assert.equal(imported.entries.length, 2);
+  assert.equal(imported.entries[0].weight.toFixed(2), (100 * 2.2046226218).toFixed(2));
+  assert.equal(imported.entries[0].rpe, 8);
+  assert.equal(imported.entries[0].targetRpe, null);
+  assert.equal(imported.entries[0].day, 1);
+  assert.equal(imported.entries[1].rpe, 10, "missing Hevy RPE uses the documented RPE 10 fallback");
+  assert.match(imported.entries[0].hevySourceKey, /^hevy:acct%2F1:workout-1:bench:0:1$/);
+  assert.ok(imported.best.bench);
+});
+
+test("reimport replaces edits and deletions for the covered account/date range without touching manual logs", () => {
+  const h = context({ state: { log: [
+    { exId: 11, date: "2026-10-20T12:00:00Z", weight: 90, reps: 5, rpe: 9 },
+    { exId: 11, date: "2026-10-20T12:00:00Z", weight: 80, reps: 5, rpe: 10, hevySourceKey: "hevy:acct:workout-1:bench:0:0" },
+    { exId: 11, date: "2026-08-01T12:00:00Z", weight: 70, reps: 5, rpe: 9, hevySourceKey: "hevy:acct:old:bench:0:0" },
+    { exId: 11, date: "2026-10-20T12:00:00Z", weight: 60, reps: 5, rpe: 8, hevySourceKey: "hevy:other:workout:bench:0:0" },
+  ] } });
+  const next = [
+    { exId: 11, date: "2026-10-20T12:00:00Z", weight: 100, reps: 5, rpe: 8, hevySourceKey: "hevy:acct:workout-1:bench:0:0" },
+  ];
+  h.ctx.nextImported = next;
+  vm.runInContext('hevyReplaceImportedLog(nextImported, "acct", "2026-10-01T00:00:00Z")', h.ctx);
+  const rows = Array.from(h.ctx.state.log, row => [row.weight, row.hevySourceKey || "manual"])
+    .sort((a, b) => String(a[1]).localeCompare(String(b[1])));
+  assert.deepEqual(rows, [
+    [100, "hevy:acct:workout-1:bench:0:0"],
+    [70, "hevy:acct:old:bench:0:0"],
+    [90, "manual"],
+    [60, "hevy:other:workout:bench:0:0"],
+  ].sort((a, b) => String(a[1]).localeCompare(String(b[1]))));
+  vm.runInContext('hevyReplaceImportedLog(nextImported, "acct", "2026-10-01T00:00:00Z")', h.ctx);
+  assert.equal(h.ctx.state.log.filter(row => row.hevySourceKey === "hevy:acct:workout-1:bench:0:0").length, 1);
+});
+
+test("imported Hevy sets progress TMs through the same Close Week log rule as manual sets", () => {
   const h = context({
-    state: { unit: "kg", exercises: [{ id: 11, tm: 85 }] },
-    fetch: async (url) => ({ ok: true, status: 200, json: async () => ({
-      workouts: [{ id: "uuid-workout", title: "Session", start_time: "2026-02-01", exercises: [
-        { exercise_template_id: "bench", sets: [{ weight_kg: 97, reps: 2 }] },
-      ] }],
-    }) }),
+    state: {
+      exercises: [{ id: 11, cat: "CHEST", tm: 85 }], settings: {
+        upUpperStrong: 1.5, upUpperSmall: 0.5, downUpper: 2.5,
+        upLowerStrong: 1, upLowerSmall: 1, downLower: 2.5,
+      },
+      log: [],
+    },
+    isLowerBody: () => false,
   });
   vm.runInContext(fs.readFileSync("js/calculations.js", "utf8"), h.ctx);
-  await vm.runInContext("hevyImport()", h.ctx);
-  const expected = vm.runInContext("calculateE1RM(97, 2, 10).toFixed(1)", h.ctx);
-  const output = h.getElement("#hevyResults").textContent;
-  assert.ok(output.includes(`${expected} kg`));
-  assert.match(output, /@ RPE 10/);
-  assert.match(output, /97\.0 kg × 2/);
-  assert.match(output, /Session/);
+  const date = new Date().toISOString();
+  const logged = { exId: 11, date, weight: 100, reps: 3, rpe: 8, e1rm: vm.runInContext("calculateE1RM(100, 3, 8)", h.ctx), targetRpe: null };
+  h.ctx.manualLog = [logged];
+  h.ctx.state.log = [logged];
+  vm.runInContext("progressTrainingMax(state.exercises[0])", h.ctx);
+  const manualResult = h.ctx.state.exercises[0].tm;
+  h.ctx.state.exercises[0].tm = 85;
+  h.ctx.state.log = [{ ...logged, hevySourceKey: "hevy:acct:workout:bench:0:0" }];
+  vm.runInContext("progressTrainingMax(state.exercises[0])", h.ctx);
+  assert.equal(h.ctx.state.exercises[0].tm, manualResult);
+  assert.ok(manualResult > 85);
+  vm.runInContext("progressTrainingMax(state.exercises[0])", h.ctx);
+  assert.equal(h.ctx.state.exercises[0].tm, manualResult, "repeating Close Week with the same imported sets is idempotent");
+});
+
+test("declining the Close Week confirmation leaves TMs unchanged", () => {
+  const h = context({
+    state: { exercises: [{ id: 11, cat: "CHEST", tm: 85 }], log: [] },
+    confirm: () => false,
+    persist() {}, saveLastSession() {}, alert() {}, renderExercises() {}, renderToday() {},
+  });
+  vm.runInContext(fs.readFileSync("js/data-io.js", "utf8"), h.ctx);
+  assert.equal(vm.runInContext('closeWeek("Import recent Hevy sets?")', h.ctx), false);
   assert.equal(h.ctx.state.exercises[0].tm, 85);
 });
 

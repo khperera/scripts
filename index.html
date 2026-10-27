@@ -64,6 +64,7 @@
       <div class="card">
         <label>Hevy</label>
         <button id="hevyTodaySync">Set up Hevy sync</button>
+        <button id="hevyTodayImport">Import Hevy history &amp; close week</button>
         <div id="hevyCurrentState" class="tiny" aria-live="polite">Checking saved Hevy state…</div>
       </div>
       <div class="card">
@@ -195,8 +196,11 @@
           <p class="tiny">Routine updates happen only when you press the Hevy button on Today or confirm the initial sync below.</p>
           <button id="hevyResetSetup">Clear mappings and start over</button>
           <p class="tiny">Sync updates Hevy routines; it does not create a completed workout or launch Hevy. Conflicts stop the batch before any write. Hevy saves routines one at a time, so a connection failure during saving can leave some routines updated; check status and review again before retrying.</p>
-          <h4>Imported workout results</h4>
-          <button id="hevyImport">Import workout results</button>
+          <h4>Recent Hevy training</h4>
+          <p class="tiny">Import mapped working sets from the selected lookback and add them to LiftTracker’s workout log. Missing Hevy RPE is recorded as RPE 10; without a known historical program week, target RPE is left blank and Close Week uses its usual 8.5 fallback. After import, the regular Close Week confirmation can progress TMs. The existing code scores sets from the last 7 days and uses best e1RM from the last 42 days; its RPE score is calculated but currently does not change the TM result.</p>
+          <label for="hevyLookbackWeeks">Look back (weeks; up to 6 because TM reference uses 42 days)</label>
+          <input id="hevyLookbackWeeks" type="number" min="1" max="6" step="1" value="6">
+          <button id="hevyImport">Import recent Hevy sets &amp; close week</button>
           <div id="hevyResults" class="tiny"></div>
         </div>
       </div>

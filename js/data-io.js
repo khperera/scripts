@@ -18,8 +18,8 @@ function saveSettings() {
   alert('Settings saved!');
 }
 
-function closeWeek() {
-  if (!confirm('Close this week and progress all Training Maxes? This cannot be undone.')) return;
+function closeWeek(message = 'Close this week and progress all Training Maxes? This cannot be undone.') {
+  if (!confirm(message)) return false;
   state.exercises.forEach(exercise => {
     progressTrainingMax(exercise);
   });
@@ -29,6 +29,7 @@ function closeWeek() {
   alert('Week closed! Training maxes updated.');
   renderExercises();
   renderToday();
+  return true;
 }
 
 function resetTemplates() {
