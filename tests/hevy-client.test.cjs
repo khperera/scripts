@@ -12,7 +12,7 @@ function context(extra = {}) {
     const id = selector.replace(/^#/, "");
     if (!elements.has(id)) elements.set(id, {
       value: "", textContent: "", checked: true, hidden: false, disabled: false,
-      dataset: {}, appendChild() {}, replaceChildren() {}, querySelectorAll() { return []; },
+      dataset: {}, appendChild() {}, replaceChildren() {}, querySelectorAll() { return []; }, scrollIntoView() {},
     });
     return elements.get(id);
   };
@@ -23,7 +23,7 @@ function context(extra = {}) {
       removeItem: key => values.delete(key),
     },
     window: {},
-    document: { createElement: () => ({ appendChild() {}, append() {}, replaceChildren() {} }) },
+    document: { createElement: () => ({ dataset: {}, appendChild() {}, append() {}, replaceChildren() {}, querySelector() { return null; } }) },
     Option: function (text, value) { return { text, value }; },
     $: getElement,
     state: {
@@ -133,6 +133,31 @@ test("routine merge changes only the mapped exercise's normal sets and preserves
   assert.equal(result.notes, "routine note");
 });
 
+test("routine exercise notes show each day's target RPE without duplicating or replacing user notes", () => {
+  const h = context({ getRPEForExercise: (_week, dayId) => dayId === 1 ? 7.5 : 8.5 });
+  vm.runInContext(`hevyRuntimeRoutines = {
+    a: {id:"a",title:"Upper 1",exercises:[{exercise_template_id:"bench",notes:"Keep my cue\\nElbows under bar",sets:[]}]},
+    b: {id:"b",title:"Upper 2",exercises:[{exercise_template_id:"bench",notes:"Pause on chest",sets:[]}]}
+  }`, h.ctx);
+  const profile = {
+    exerciseMap: { 11: "bench" }, dayRoutines: { 1: "a", 2: "b" },
+    dayOccurrences: { 1: { 0: 0 }, 2: { 0: 0 } },
+  };
+  const notes = (dayId, week) => vm.runInContext(
+    `hevyMergeRoutine(hevyPlanForDay(state.days.find(d => d.id === ${dayId}), ${week}, ${JSON.stringify(profile)})).exercises[0].notes`,
+    h.ctx,
+  );
+
+  const upper1 = notes(1, 2);
+  const upper2 = notes(2, 2);
+  assert.equal(upper1, "Keep my cue\nElbows under bar\nLiftTracker target RPE: 7.5 (week 2)");
+  assert.equal(upper2, "Pause on chest\nLiftTracker target RPE: 8.5 (week 2)");
+  assert.equal(notes(1, 2), upper1, "rebuilding the same plan is idempotent");
+  assert.equal(notes(1, 3), "Keep my cue\nElbows under bar\nLiftTracker target RPE: 7.5 (week 3)", "a new week replaces the managed line");
+  assert.equal(vm.runInContext('hevyWithTargetRpeNote("Personal note\\nLiftTracker target RPE: 6 (week 1)", 2, 8)', h.ctx),
+    "Personal note\nLiftTracker target RPE: 8 (week 2)");
+});
+
 test("setup validation gates all writes until every active exercise, day, and occurrence is mapped", () => {
   const h = context();
   const profile = {
@@ -214,26 +239,42 @@ test("batch preview preflights every routine before writing, then repeat sync is
   const profile = {
     accountId: "acct", exerciseMap: { 11: "bench" },
     dayRoutines: { 1: "a", 2: "b" }, dayOccurrences: { 1: { 0: 0 }, 2: { 0: 0 } },
-    routineSnapshots: {}, enabled: false, autoSync: true,
+    routineSnapshots: { a: structuredClone(remote.a), b: structuredClone(remote.b) }, enabled: true, autoSync: true,
   };
   h.values.set("lifttracker_hevy_setup_v2", JSON.stringify({ activeAccount: "acct", profiles: { acct: profile } }));
   vm.runInContext('hevyRuntimeAccount = "acct"; hevyRuntimeRoutines = {a:{id:"a",title:"Upper A",exercises:[{exercise_template_id:"bench"}]},b:{id:"b",title:"Upper B",exercises:[{exercise_template_id:"bench"}]}}', h.ctx);
   h.getElement("#week").value = "1";
+  vm.runInContext("initHevy()", h.ctx);
 
-  await vm.runInContext("hevyReviewAllRoutines()", h.ctx);
+  assert.equal(puts, 0, "sync does not happen until the Today button action");
   remote.b.notes = "External edit after review";
-  await assert.rejects(vm.runInContext("hevyApplyPreview(true)", h.ctx), /changed after preview/);
+  await h.getElement("#hevyTodaySync").onclick();
   assert.equal(puts, 0, "all routines are preflighted before the first write");
+  assert.match(h.getElement("#hevyStatus").textContent, /conflict/);
 
   delete remote.b.notes;
-  await vm.runInContext("hevyReviewAllRoutines()", h.ctx);
-  const first = await vm.runInContext("hevyApplyPreview(true)", h.ctx);
-  assert.equal(first.count, 2);
+  await h.getElement("#hevyTodaySync").onclick();
   assert.equal(puts, 2);
-  await vm.runInContext("hevyReviewAllRoutines()", h.ctx);
-  const second = await vm.runInContext("hevyApplyPreview(false)", h.ctx);
-  assert.equal(second.changedCount, 0);
+  await h.getElement("#hevyTodaySync").onclick();
   assert.equal(puts, 2);
+  assert.match(h.getElement("#hevyStatus").textContent, /0 changed/);
+  assert.equal(JSON.parse(h.values.get("lifttracker_hevy_setup_v2")).profiles.acct.autoSync, false,
+    "legacy automatic-sync preferences are cleared on the manual path");
+});
+
+test("Today sync button routes incomplete setup to mapping and never writes early", async () => {
+  let requests = 0;
+  const h = context({ fetch: async () => { requests++; throw new Error("unexpected request"); } });
+  h.values.set("lifttracker_hevy_setup_v2", JSON.stringify({
+    activeAccount: "acct", profiles: { acct: { accountId: "acct", exerciseMap: {}, dayRoutines: {}, dayOccurrences: {}, enabled: false } },
+  }));
+  vm.runInContext('hevyRuntimeAccount = "acct"', h.ctx);
+  h.getElement("#hevyWizard").hidden = true;
+  vm.runInContext("initHevy()", h.ctx);
+  await h.getElement("#hevyTodaySync").onclick();
+  assert.equal(requests, 0);
+  assert.equal(h.getElement("#hevyWizard").hidden, false);
+  assert.match(h.getElement("#hevyStatus").textContent, /Finish or review/);
 });
 
 test("editing prescribed values after review requires a new preview", async () => {

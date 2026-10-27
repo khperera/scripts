@@ -8,8 +8,6 @@ let hevyRuntimeTemplateNames = {};
 let hevyRuntimeRoutines = {};
 let hevyPreview = null;
 let hevySyncBusy = false;
-let hevySyncQueued = false;
-let hevySyncTimer = null;
 
 function hevyIsAndroid() {
   return window.Capacitor?.getPlatform?.() === "android";
@@ -264,9 +262,6 @@ async function hevyConnect(keyOverride = null) {
     renderHevyControls();
     const displayName = data.user?.name || data.user?.username || data.user?.email || "Hevy account";
     $("#hevyStatus").textContent = "Connected to " + displayName + ". Map exercises and active days before syncing.";
-    if (profile.enabled && profile.autoSync) {
-      setTimeout(() => hevySyncAll("app open").catch(error => hevySetStatus(error.message)), 0);
-    }
     return true;
   } catch (error) {
     $("#hevyStatus").textContent = error.message;
@@ -553,6 +548,12 @@ function hevyPlanForDay(day, week, profile) {
     assignments[Number(profile.dayOccurrences[String(day.id)][String(itemIndex)])] = {
       name: exercise.name,
       templateId: profile.exerciseMap[String(exercise.id)],
+      targetRpe: rpe,
+      notes: hevyWithTargetRpeNote(
+        routine.exercises[Number(profile.dayOccurrences[String(day.id)][String(itemIndex)])]?.notes,
+        week,
+        rpe,
+      ),
       totalSets,
       desired: [
         { weight_kg: state.unit === "lb" ? topWeight / 2.2046226218 : topWeight, reps },
@@ -561,6 +562,15 @@ function hevyPlanForDay(day, week, profile) {
     };
   });
   return { dayId: String(day.id), dayName: day.name, routineId: String(routineId), routine, assignments };
+}
+function hevyWithTargetRpeNote(existingNotes, week, rpe) {
+  const marker = "LiftTracker target RPE:";
+  const retained = String(existingNotes || "")
+    .split(/\r?\n/)
+    .filter(line => !line.trimStart().startsWith(marker));
+  while (retained.length && retained[retained.length - 1] === "") retained.pop();
+  const note = marker + " " + rpe + " (week " + week + ")";
+  return retained.length ? retained.join("\n") + "\n" + note : note;
 }
 function stableHevy(value) {
   if (Array.isArray(value)) return value.map(stableHevy);
@@ -605,7 +615,7 @@ function hevyMergeRoutine(dayPlan) {
       return [desiredNormals[nextNormal++]];
     });
     while (nextNormal < desiredNormals.length) sets.push(desiredNormals[nextNormal++]);
-    return { ...exercise, sets };
+    return { ...exercise, notes: target.notes, sets };
   });
   return { ...routine, exercises };
 }
@@ -627,7 +637,7 @@ function hevyRenderPreview(rows, conflicts) {
     row.targets.forEach(target => {
       const li = document.createElement("li");
       const setsText = target.desired.map(set => set.weight_kg.toFixed(1) + " kg × " + set.reps).join("; ");
-      li.textContent = target.name + ": " + setsText + (target.changed ? " (will update)" : " (already matches)");
+      li.textContent = target.name + ": target RPE " + target.targetRpe + "; " + setsText + (target.changed ? " (will update)" : " (already matches)");
       list.appendChild(li);
     });
     if (!row.targets.length) {
@@ -719,47 +729,53 @@ async function hevyApplyPreview(enable) {
     hevySave(profile);
   }
   profile.enabled = enable || profile.enabled;
-  profile.autoSync = $("#hevyAuto").checked;
+  profile.autoSync = false;
   profile.lastSync = new Date().toISOString();
   hevySave(profile);
   hevyPreview = null;
   $("#hevyEnableSync").hidden = true;
-  $("#hevySyncNow").hidden = !profile.enabled;
   hevySetStatus("Prepared " + fresh.length + " Hevy routines for week " + (Number($("#week").value) || 1) + ". " + changedCount + " changed.");
   return { count: fresh.length, changedCount };
 }
 async function hevySyncAll(reason = "manual") {
-  if (hevySyncBusy) { hevySyncQueued = true; return; }
+  if (hevySyncBusy) return;
   hevySyncBusy = true;
+  $("#hevyTodaySync").disabled = true;
+  $("#hevyTodaySync").textContent = "Syncing Hevy…";
   try {
-    do {
-      hevySyncQueued = false;
-      const profile = hevyMeta();
-      if (!profile?.enabled) throw new Error("Review all routine mappings and enable sync first.");
-      hevySetStatus("Preparing all active-day routines (" + reason + ")…");
-      await hevyReviewAllRoutines();
-      if (hevyPreview?.conflicts.length) throw new Error("Sync stopped. Review the routine conflicts before continuing.");
-      await hevyApplyPreview(false);
-    } while (hevySyncQueued && hevyMeta()?.enabled && hevyMeta()?.autoSync);
+    const profile = hevyMeta();
+    if (!profile?.enabled) throw new Error("Complete the mappings and confirm the initial review in Hevy setup before syncing.");
+    const errors = hevyValidateSetup(profile);
+    if (errors.length) throw new Error(errors.join(" "));
+    hevySetStatus("Preparing all active-day routines (" + reason + ")…");
+    await hevyReviewAllRoutines();
+    if (hevyPreview?.conflicts.length) throw new Error("Sync stopped. Review the routine conflicts before continuing.");
+    await hevyApplyPreview(false);
   } catch (error) {
     hevySetStatus(error.message);
   } finally {
     hevySyncBusy = false;
+    renderHevyControls();
   }
 }
-function hevyScheduleSync(reason) {
+function hevyTodaySync() {
   const profile = hevyMeta();
-  if (!profile?.enabled || !profile.autoSync || !hevyRuntimeAccount) return;
-  clearTimeout(hevySyncTimer);
-  hevySyncTimer = setTimeout(() => hevySyncAll(reason), 1000);
+  if (!hevyRuntimeAccount || !profile?.enabled || hevyValidateSetup(profile).length) {
+    $("#hevyWizard").hidden = false;
+    hevySetStatus(!hevyRuntimeAccount
+      ? "Connect your Hevy account and finish setup here before syncing."
+      : "Finish or review the exercise and day mappings in Hevy setup before syncing.");
+    $("#hevySettings").scrollIntoView?.({ behavior: "smooth", block: "start" });
+    return;
+  }
+  return hevySyncAll("manual");
 }
 function renderHevyControls() {
   const profile = hevyMeta();
   const errors = hevyValidateSetup(profile);
   $("#hevyPreview").disabled = errors.length > 0;
-  $("#hevyAuto").checked = profile?.autoSync === true;
-  $("#hevySyncNow").hidden = !profile?.enabled;
-  if (profile?.enabled && !errors.length) $("#hevyStatus").textContent = "Setup complete. All active routines will sync for the selected week.";
+  $("#hevyTodaySync").disabled = hevySyncBusy;
+  $("#hevyTodaySync").textContent = hevySyncBusy ? "Syncing Hevy…" : (profile?.enabled && !errors.length ? "Sync Hevy now" : "Set up Hevy sync");
 }
 function hevySaveImportSummary(records, summary, count) {
   const profile = hevyMeta();
@@ -878,14 +894,7 @@ function initHevy() {
   };
   $("#hevyPreview").onclick = () => hevyReviewAllRoutines().catch(error => hevySetStatus(error.message));
   $("#hevyEnableSync").onclick = () => hevyApplyPreview(true).catch(error => hevySetStatus(error.message));
-  $("#hevySyncNow").onclick = () => hevySyncAll("manual");
-  $("#hevyAuto").onchange = () => {
-    const profile = hevyMeta();
-    if (!profile) return;
-    profile.autoSync = $("#hevyAuto").checked;
-    hevySave(profile);
-    if (profile.autoSync && profile.enabled) hevyScheduleSync("automatic sync enabled");
-  };
+  $("#hevyTodaySync").onclick = hevyTodaySync;
   $("#hevyResetSetup").onclick = () => {
     const profile = hevyMeta();
     if (!profile) return;
@@ -901,26 +910,7 @@ function initHevy() {
   };
   $("#hevyImport").onclick = hevyImport;
   renderHevy();
-  const oldRenderToday = window.renderToday;
-  if (typeof oldRenderToday === "function" && !oldRenderToday._hevyWrapped) {
-    const wrapped = function () {
-      hevyPreview = null;
-      const result = oldRenderToday.apply(this, arguments);
-      hevyScheduleSync("plan changed");
-      return result;
-    };
-    wrapped._hevyWrapped = true;
-    window.renderToday = wrapped;
-  }
-  const oldPersist = window.persist;
-  if (typeof oldPersist === "function" && !oldPersist._hevyWrapped) {
-    const wrapped = function () {
-      hevyPreview = null;
-      const result = oldPersist.apply(this, arguments);
-      hevyScheduleSync("LiftTracker data changed");
-      return result;
-    };
-    wrapped._hevyWrapped = true;
-    window.persist = wrapped;
-  }
+  // Ignore legacy auto-sync preferences from earlier versions. Sync is command-only.
+  const profile = hevyMeta();
+  if (profile?.autoSync) { profile.autoSync = false; hevySave(profile); }
 }

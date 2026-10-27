@@ -62,6 +62,10 @@
         <button id="advanceBtn">Advance Week/Day</button>
       </div>
       <div class="card">
+        <label>Hevy</label>
+        <button id="hevyTodaySync">Set up Hevy sync</button>
+      </div>
+      <div class="card">
         <label>Unit</label>
         <select id="unit">
           <option value="lb">lb</option>
@@ -185,9 +189,8 @@
           <p class="tiny">Review every routine before the first write. LiftTracker will prepare all mapped routines for the selected week. Each exercise gets one prescribed top set, then template sets minus one five-rep mini sets at the load derived from 13 reps. Warmups and special sets stay intact.</p>
           <button id="hevyPreview">Review all mapped routines</button>
           <div id="hevyPreviewResults" class="tiny" aria-live="polite"></div>
-          <button id="hevyEnableSync" hidden>Confirm and enable sync for all routines</button>
-          <label><input id="hevyAuto" type="checkbox"> Sync automatically on app open and plan changes</label>
-          <button id="hevySyncNow" hidden>Sync all routines now</button>
+          <button id="hevyEnableSync" hidden>Confirm initial sync for all routines</button>
+          <p class="tiny">Routine updates happen only when you press the Hevy button on Today or confirm the initial sync below.</p>
           <button id="hevyResetSetup">Clear mappings and start over</button>
           <p class="tiny">Sync updates Hevy routines; it does not create a completed workout or launch Hevy. Conflicts stop the batch before any write. Hevy saves routines one at a time, so a connection failure during saving can leave some routines updated; check status and review again before retrying.</p>
           <h4>Imported workout results</h4>
