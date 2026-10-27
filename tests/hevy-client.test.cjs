@@ -466,3 +466,95 @@ test("saved Android key reconnects read-only and restores this account's mapping
   assert.match(h.getElement("#hevyCurrentState").textContent, /Last successful sync/);
   assert.equal([...h.values.values()].some(value => String(value).includes(storedKey)), false);
 });
+
+test("standard JSON backup exports only account-bound Hevy mappings and never the key or routine snapshots", () => {
+  const h = context();
+  const profile = {
+    accountId: "acct", exerciseMap: { 11: "bench-template" }, dayRoutines: { 1: "routine-a", 2: "routine-b" },
+    dayOccurrences: { 1: { 0: 2 }, 2: { 0: 1 } }, enabled: true,
+    apiKey: "must-not-export", routineSnapshots: { a: { notes: "private snapshot" } },
+    imports: { private: "cached workout" },
+  };
+  h.values.set("lifttracker_hevy_setup_v2", JSON.stringify({ activeAccount: "acct", profiles: { acct: profile } }));
+  vm.runInContext('hevyRuntimeKey = "runtime-api-key-sentinel"', h.ctx);
+  vm.runInContext(fs.readFileSync("js/data-io.js", "utf8"), h.ctx);
+  const payload = JSON.parse(JSON.stringify(vm.runInContext("buildExportPayload()", h.ctx)));
+  assert.equal(payload.hevyMappings.version, 1);
+  assert.deepEqual(payload.hevyMappings.profiles, [{
+    accountId: "acct", exerciseMap: { 11: "bench-template" },
+    dayRoutines: { 1: "routine-a", 2: "routine-b" }, dayOccurrences: { 1: { 0: 2 }, 2: { 0: 1 } },
+  }]);
+  assert.equal(JSON.stringify(payload).includes("must-not-export"), false);
+  assert.equal(JSON.stringify(payload).includes("private snapshot"), false);
+  assert.equal(JSON.stringify(payload).includes("cached workout"), false);
+  assert.equal(JSON.stringify(payload).includes("apiKey"), false);
+  assert.equal(JSON.stringify(payload).includes("runtime-api-key-sentinel"), false);
+});
+
+test("normal JSON import round-trips mappings but resets sync approval and routine snapshots", async () => {
+  const h = context({ DEFAULT_STATE: {
+    rpeSchedule: { defaults: {}, overrides: {} }, repProgression: { defaults: {}, overrides: {} }, exerciseRepRanges: {},
+  } });
+  const oldStore = { activeAccount: "acct", profiles: { acct: {
+    accountId: "acct", exerciseMap: { 11: "old" }, dayRoutines: { 1: "old-routine" },
+    dayOccurrences: { 1: { 0: 0 } }, enabled: true, routineSnapshots: { stale: {} }, lastSync: "yesterday",
+  } } };
+  h.values.set("lifttracker_hevy_setup_v2", JSON.stringify(oldStore));
+  vm.runInContext('hevyRuntimeKey = "secure-device-key-sentinel"', h.ctx);
+  vm.runInContext(fs.readFileSync("js/data-io.js", "utf8"), h.ctx);
+  h.ctx.persist = () => {};
+  h.ctx.renderSettings = h.ctx.renderExercises = h.ctx.renderTemplates = h.ctx.updateDayDropdown = () => {};
+  h.ctx.renderToday = h.ctx.renderHistory = h.ctx.renderProgression = () => {};
+  h.ctx.alert = message => { h.ctx.lastAlert = message; };
+  h.ctx.fileImportEvent = { target: { files: [{ text: async () => JSON.stringify({
+    unit: "kg", exercises: [{ id: 11, name: "Bench Press", tm: 100 }], days: [{ id: 1, name: "Upper 1" }, { id: 2, name: "Upper 2" }],
+    templates: { 1: [{ exId: 11, sets: 3 }], 2: [{ exId: 11, sets: 2 }] }, log: [],
+    hevyMappings: { version: 1, profiles: [{ accountId: "acct", exerciseMap: { 11: "bench-template" },
+      dayRoutines: { 1: "routine-a", 2: "routine-b" }, dayOccurrences: { 1: { 0: 2 }, 2: { 0: 1 } }, apiKey: "must-be-ignored" }] },
+  }) }], value: "selected" } };
+  await vm.runInContext("importData(fileImportEvent)", h.ctx);
+  const imported = JSON.parse(h.values.get("lifttracker_hevy_setup_v2"));
+  assert.equal(imported.profiles.acct.exerciseMap[11], "bench-template");
+  assert.deepEqual(imported.profiles.acct.dayRoutines, { 1: "routine-a", 2: "routine-b" });
+  assert.deepEqual(imported.profiles.acct.dayOccurrences, { 1: { 0: 2 }, 2: { 0: 1 } });
+  assert.deepEqual(imported.profiles.acct.routineSnapshots, {});
+  assert.equal(imported.profiles.acct.enabled, false);
+  assert.equal(imported.profiles.acct.lastSync, null);
+  assert.equal(JSON.stringify(imported).includes("must-be-ignored"), false);
+  assert.equal(vm.runInContext("hevyRuntimeKey", h.ctx), "secure-device-key-sentinel", "mapping restore must not modify the API key");
+  assert.match(h.ctx.lastAlert, /Reconnect to Hevy and review/);
+});
+
+test("legacy JSON imports preserve mappings; malformed mapping imports roll back without persisting", async () => {
+  const h = context({ DEFAULT_STATE: {
+    rpeSchedule: { defaults: {}, overrides: {} }, repProgression: { defaults: {}, overrides: {} }, exerciseRepRanges: {},
+  } });
+  const mappings = { activeAccount: "acct", profiles: { acct: { accountId: "acct", exerciseMap: { 11: "saved" }, dayRoutines: {}, dayOccurrences: {} } } };
+  h.values.set("lifttracker_hevy_setup_v2", JSON.stringify(mappings));
+  vm.runInContext(fs.readFileSync("js/data-io.js", "utf8"), h.ctx);
+  let writes = 0;
+  h.ctx.persist = () => { writes++; };
+  h.ctx.renderSettings = h.ctx.renderExercises = h.ctx.renderTemplates = h.ctx.updateDayDropdown = () => {};
+  h.ctx.renderToday = h.ctx.renderHistory = h.ctx.renderProgression = () => {};
+  h.ctx.alert = message => { h.ctx.lastAlert = message; };
+  const legacy = { unit: "kg", exercises: [{ id: 11, tm: 95 }], days: [{ id: 1, name: "Upper 1" }], templates: { 1: [] }, log: [] };
+  h.ctx.fileImportEvent = { target: { files: [{ text: async () => JSON.stringify(legacy) }], value: "" } };
+  await vm.runInContext("importData(fileImportEvent)", h.ctx);
+  assert.equal(JSON.parse(h.values.get("lifttracker_hevy_setup_v2")).profiles.acct.exerciseMap[11], "saved");
+  assert.match(h.ctx.lastAlert, /Existing Hevy mappings were kept/);
+  assert.equal(JSON.parse(h.values.get("lifttracker_hevy_setup_v2")).profiles.acct.enabled, false,
+    "existing mappings remain but their previous sync approval is invalidated after state import");
+
+  const beforeState = JSON.stringify(h.ctx.state);
+  const beforeStore = h.values.get("lifttracker_hevy_setup_v2");
+  writes = 0;
+  h.ctx.fileImportEvent = { target: { files: [{ text: async () => JSON.stringify({
+    ...legacy,
+    hevyMappings: { version: 1, profiles: [{ accountId: "acct", exerciseMap: { 99: "bad" }, dayRoutines: {}, dayOccurrences: {} }] },
+  }) }], value: "" } };
+  await vm.runInContext("importData(fileImportEvent)", h.ctx);
+  assert.equal(JSON.stringify(h.ctx.state), beforeState);
+  assert.equal(h.values.get("lifttracker_hevy_setup_v2"), beforeStore);
+  assert.equal(writes, 0);
+  assert.match(h.ctx.lastAlert, /missing or invalid exercise/);
+});

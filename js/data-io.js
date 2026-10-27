@@ -45,8 +45,14 @@ function resetTemplates() {
   }
 }
 
+function buildExportPayload() {
+  const payload = { ...state };
+  if (typeof hevyMappingBackup === 'function') payload.hevyMappings = hevyMappingBackup();
+  return payload;
+}
+
 async function exportData() {
-  const dataStr = JSON.stringify(state, null, 2);
+  const dataStr = JSON.stringify(buildExportPayload(), null, 2);
   const filename = `lifttracker-${new Date().toISOString().split('T')[0]}.json`;
   const blob = new Blob([dataStr], { type: 'application/json' });
 
@@ -112,9 +118,17 @@ async function importData(event) {
   const file = event.target.files[0];
   if (!file) return;
 
+  const originalState = JSON.parse(JSON.stringify(state));
+  let stateReplaced = false;
   try {
     const text = await file.text();
     const importedData = JSON.parse(text);
+    const includesHevyMappings = Object.prototype.hasOwnProperty.call(importedData || {}, 'hevyMappings');
+    const hevyMappings = includesHevyMappings ? importedData.hevyMappings : null;
+    if (includesHevyMappings && typeof hevyValidateMappingBackup !== 'function') {
+      throw new Error('This app version cannot import the Hevy mappings in this file.');
+    }
+    if (importedData && typeof importedData === 'object') delete importedData.hevyMappings;
 
     // Validate imported data structure
     if (importedData && typeof importedData === 'object') {
@@ -123,6 +137,7 @@ async function importData(event) {
       // an older export that doesn't include them.
       Object.keys(state).forEach(key => { delete state[key]; });
       Object.assign(state, importedData);
+      stateReplaced = true;
 
       // Run migration if imported data is old format (no days array)
       if (!state.days) {
@@ -146,7 +161,14 @@ async function importData(event) {
         state.cycleLength = 6;
       }
 
+      // Validate mappings against the imported exercise/day IDs before writing
+      // the new state. Older backups without this optional field keep existing
+      // Hevy mappings unchanged.
+      if (includesHevyMappings) hevyValidateMappingBackup(hevyMappings, state);
+
       persist();
+      if (includesHevyMappings) hevyRestoreMappingBackup(hevyMappings);
+      if (typeof hevyRequireMappingReview === 'function') hevyRequireMappingReview();
 
       // Re-render all views
       renderSettings();
@@ -156,12 +178,20 @@ async function importData(event) {
       renderToday();
       renderHistory();
       if (!$('#page-progression').hidden) renderProgression();
+      if (typeof renderHevy === 'function') renderHevy();
+      if (typeof hevyRenderCurrentState === 'function') hevyRenderCurrentState();
 
-      alert('Data imported successfully!');
+      alert(includesHevyMappings
+        ? 'Data and Hevy mappings imported. Reconnect to Hevy and review the routine setup before syncing.'
+        : 'Data imported successfully! Existing Hevy mappings were kept; review setup again before syncing.');
     } else {
       throw new Error('Invalid file format');
     }
   } catch (error) {
+    if (stateReplaced) {
+      Object.keys(state).forEach(key => { delete state[key]; });
+      Object.assign(state, originalState);
+    }
     alert('Error importing file: ' + error.message);
   }
 

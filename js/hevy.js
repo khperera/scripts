@@ -44,6 +44,104 @@ function hevySave(profile) {
   store.profiles[accountId] = profile;
   localStorage.setItem(HEVY_META_KEY, JSON.stringify(store));
 }
+function hevyMappingBackup() {
+  const store = hevyStoreRead();
+  const profiles = Object.values(store.profiles).map(profile => ({
+    accountId: String(profile.accountId || ""),
+    exerciseMap: { ...(profile.exerciseMap || {}) },
+    dayRoutines: { ...(profile.dayRoutines || {}) },
+    dayOccurrences: Object.fromEntries(Object.entries(profile.dayOccurrences || {}).map(([dayId, values]) => [dayId, { ...values }])),
+  })).filter(profile => profile.accountId);
+  return { version: 1, profiles };
+}
+function hevyValidateMappingBackup(backup, targetState = state) {
+  if (!backup || typeof backup !== "object" || backup.version !== 1 || !Array.isArray(backup.profiles) || backup.profiles.length > 50) {
+    throw new Error("This file has an unsupported Hevy mappings backup.");
+  }
+  const exerciseIds = new Set((targetState.exercises || []).map(exercise => String(exercise.id)));
+  const dayIds = new Set((targetState.days || []).map(day => String(day.id)));
+  const normalizedProfiles = [];
+  const accountIds = new Set();
+  let total = 0;
+  const stringMap = (value, label, allowedKeys) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid " + label + " mapping data.");
+    const result = {};
+    for (const [key, mapped] of Object.entries(value)) {
+      if (!/^\d+$/.test(key) || !allowedKeys.has(key) || typeof mapped !== "string" || !mapped || mapped.length > 256) {
+        throw new Error("The Hevy mappings refer to a missing or invalid " + label + ". Import the matching LiftTracker data backup.");
+      }
+      result[key] = mapped;
+      total++;
+      if (total > 10000) throw new Error("The Hevy mappings backup contains too many entries.");
+    }
+    return result;
+  };
+  for (const profile of backup.profiles) {
+    if (!profile || typeof profile !== "object" || typeof profile.accountId !== "string" || !profile.accountId || profile.accountId.length > 256 || ["__proto__", "constructor", "prototype"].includes(profile.accountId) || accountIds.has(profile.accountId)) {
+      throw new Error("The Hevy mappings backup contains an invalid or duplicate account.");
+    }
+    accountIds.add(profile.accountId);
+    const exerciseMap = stringMap(profile.exerciseMap || {}, "exercise", exerciseIds);
+    const dayRoutines = stringMap(profile.dayRoutines || {}, "day", dayIds);
+    const rawOccurrences = profile.dayOccurrences || {};
+    if (!rawOccurrences || typeof rawOccurrences !== "object" || Array.isArray(rawOccurrences)) throw new Error("Invalid Hevy exercise occurrence mappings.");
+    const dayOccurrences = {};
+    for (const [dayId, values] of Object.entries(rawOccurrences)) {
+      if (!/^\d+$/.test(dayId) || !dayIds.has(dayId) || !values || typeof values !== "object" || Array.isArray(values)) {
+        throw new Error("The Hevy mappings refer to an invalid training day.");
+      }
+      dayOccurrences[dayId] = {};
+      for (const [itemIndex, routineIndex] of Object.entries(values)) {
+        const items = targetState.templates?.[dayId] || [];
+        if (!/^\d+$/.test(itemIndex) || Number(itemIndex) >= items.length || !Number.isInteger(routineIndex) || routineIndex < 0) throw new Error("The Hevy occurrence mapping does not match this LiftTracker day template.");
+        if (!exerciseMap[String(items[Number(itemIndex)]?.exId)]) throw new Error("A saved Hevy occurrence is missing its exercise mapping.");
+        dayOccurrences[dayId][itemIndex] = routineIndex;
+        total++;
+        if (total > 10000) throw new Error("The Hevy mappings backup contains too many entries.");
+      }
+    }
+    normalizedProfiles.push({ accountId: profile.accountId, exerciseMap, dayRoutines, dayOccurrences });
+  }
+  return { version: 1, profiles: normalizedProfiles };
+}
+function hevyRestoreMappingBackup(backup) {
+  const normalized = hevyValidateMappingBackup(backup, state);
+  const store = hevyStoreRead();
+  for (const mapping of normalized.profiles) {
+    const existing = store.profiles[mapping.accountId] || { accountId: mapping.accountId, autoSync: false };
+    store.profiles[mapping.accountId] = {
+      ...existing,
+      accountId: mapping.accountId,
+      exerciseMap: mapping.exerciseMap,
+      dayRoutines: mapping.dayRoutines,
+      dayOccurrences: mapping.dayOccurrences,
+      routineSnapshots: {},
+      routineSummaries: [],
+      folderTitles: {},
+      templateNames: {},
+      enabled: false,
+      autoSync: false,
+      lastSync: null,
+      lastSyncAttempt: null,
+      syncStatus: null,
+      syncError: null,
+    };
+  }
+  if (!store.activeAccount && normalized.profiles.length === 1) store.activeAccount = normalized.profiles[0].accountId;
+  localStorage.setItem(HEVY_META_KEY, JSON.stringify(store));
+  return normalized.profiles.length;
+}
+function hevyRequireMappingReview() {
+  const store = hevyStoreRead();
+  for (const profile of Object.values(store.profiles)) {
+    profile.enabled = false;
+    profile.autoSync = false;
+    profile.routineSnapshots = {};
+    profile.syncStatus = null;
+    profile.syncError = null;
+  }
+  localStorage.setItem(HEVY_META_KEY, JSON.stringify(store));
+}
 function hevyActivateAccount(accountId) {
   const store = hevyStoreRead();
   const id = String(accountId);

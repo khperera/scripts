@@ -175,6 +175,7 @@
       <div class="card" id="hevySettings">
         <h3>Hevy sync</h3>
         <p class="tiny">Map each exercise and active training day once. Android saves your API key encrypted with Android Keystore on this device; browser use keeps the key in the local companion session.</p>
+        <p class="tiny">LiftTracker’s standard Export/Import includes a separate, account-bound backup of exercise, day, and routine-occurrence mappings. The API key is never exported. Imported mappings require reconnecting to Hevy and reviewing setup before routine sync is enabled.</p>
         <label for="hevyApiKey">Hevy API key</label>
         <div class="row"><input id="hevyApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste API key" style="flex:1;min-width:180px;"><button id="hevySaveKey">Use key</button><button id="hevyForgetKey">Forget key</button></div>
         <div id="hevyKeyState" class="tiny" aria-live="polite">Checking key storage…</div>
