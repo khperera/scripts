@@ -348,6 +348,7 @@ function renderHistory() {
 }
 
 function renderSettings() {
+  $('#themeSelect').value = document.documentElement.dataset.theme || 'forest';
   $('#unit').value = state.unit;
   $('#minJump').value = state.settings.minJump;
   $('#upUpperStrong').value = state.settings.upUpperStrong;
