@@ -151,5 +151,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderExercises();
   renderHistory();
   renderSettings();
+  initHevy();
   // Progression tab renders on demand (charts need visible canvas)
 });

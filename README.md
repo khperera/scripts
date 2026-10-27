@@ -1,8 +1,8 @@
 # LiftTracker
 
-A modular, **vanilla HTML/CSS/JavaScript** weightlifting tracker that runs entirely in the browser. No build step, no bundler, no backend, and no framework required.
+A modular, **vanilla HTML/CSS/JavaScript** weightlifting tracker that runs in the browser. No build step, bundler, or framework is required. The optional Hevy integration uses a small Python standard-library companion server.
 
-All state is stored in `localStorage`, making it completely offline-capable and persistent across sessions.
+Training state is stored locally, so the tracker remains usable offline. Hevy sync requires the companion server and an internet connection.
 
 ## Features
 
@@ -25,11 +25,20 @@ All state is stored in `localStorage`, making it completely offline-capable and 
 4. Log your lifts with weight, reps, and RPE
 5. View progression trends and analytics
 
+## Hevy connection
+
+Hevy requires running the local companion server instead of opening the HTML file directly. Start it with `HEVY_API_KEY` available in the server process, then open `http://127.0.0.1:8787`. The server listens on loopback and keeps the key out of browser storage and source. In Settings, connect, load Hevy exercise templates, confirm mappings, select a routine for each day, and push the selected day. Automatic sync is opt-in and starts after a successful manual sync. Workout imports use LiftTracker’s e1RM calculation with the set RPE (assumed to be 10 when missing), stay separate from the training log, and never change training maxes.
+
+```sh
+HEVY_API_KEY='your-key' python3 hevy-server.py
+```
+
 ## Project Structure
 
 ```
 scripts/
 ├── index.html              # HTML entry point
+├── hevy-server.py          # Optional loopback companion; holds API key
 ├── css/
 │   └── styles.css          # All styles
 ├── js/
@@ -40,9 +49,12 @@ scripts/
 │   ├── pages.js            # Rendering for all pages
 │   ├── progression.js      # Interactive progression charts
 │   ├── analytics.js        # Trend analysis and summaries
-│   └── app.js              # App initialization and event listeners
+│   ├── app.js              # App initialization and event listeners
+│   └── hevy.js             # Hevy mapping, routine sync, and result import
 ├── tests/
-│   └── hamburger.spec.js   # Playwright E2E tests
+│   ├── hamburger.spec.js   # Playwright E2E tests
+│   ├── hevy-client.test.cjs # Mocked routine and import behavior
+│   └── test_hevy_server.py # Companion server safety tests
 └── package.json            # Dev dependency (Playwright)
 ```
 

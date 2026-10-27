@@ -149,6 +149,21 @@
         <input id="cycleLength" type="number" min="2" max="52" step="1" value="6">
         <p class="tiny">The last week of each cycle is a deload (87.5% load, −1 set).</p>
       </div>
+      <div class="card" id="hevySettings">
+        <h3>Hevy sync</h3>
+        <p class="tiny">Connect through the local companion. Your API key stays on the server.</p>
+        <div class="row"><button id="hevyConnect">Check connection</button><span id="hevyStatus" class="tiny">Checking companion…</span></div>
+        <label>LiftTracker day to sync</label><select id="hevyDay"></select>
+        <label>Hevy routine</label><select id="hevyRoutine"><option value="">Load routines first</option></select>
+        <label>Exercise mapping (LiftTracker exercise ID → Hevy exercise template ID, JSON)</label><textarea id="hevyMapping" rows="3" placeholder='{"1":"template-id"}'></textarea>
+        <button id="hevyLoadExercises">Load Hevy exercises for mapping</button><div id="hevyExerciseMappings"></div>
+        <button id="hevySaveMapping">Save mapping</button>
+        <label><input id="hevyAuto" type="checkbox"> Push changes automatically while this app is open</label>
+        <button id="hevyPush">Push this day’s top set + myorep plan</button>
+        <button id="hevyResetSnapshot">Reset conflict baseline for selected routine</button>
+        <p class="tiny">The plan uses one prescribed top set, then the load LiftTracker derives from 13 reps for 5-rep mini sets. Mini-set count follows the selected template’s total set count. Routine fields and warmups are preserved. This updates a routine; it does not create a completed workout.</p>
+        <button id="hevyImport">Import workout results</button><div id="hevyResults" class="tiny"></div>
+      </div>
     </div>
   </section>
 
@@ -331,6 +346,7 @@
 <script src="js/progression.js"></script>
 <script src="js/analytics.js"></script>
 <script src="js/app.js"></script>
+  <script src="js/hevy.js"></script>
 
 </body>
 </html>
