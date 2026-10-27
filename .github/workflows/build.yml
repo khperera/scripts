@@ -2,7 +2,7 @@ name: Build APK and Deploy Web
 
 on:
   push:
-    branches: [main]
+    branches: [main, claude/hevy-integration-20261026]
   pull_request:
     branches: [main]
   workflow_dispatch:
