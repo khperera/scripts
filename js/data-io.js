@@ -25,6 +25,7 @@ function closeWeek() {
   });
 
   persist();
+  saveLastSession();
   alert('Week closed! Training maxes updated.');
   renderExercises();
   renderToday();
@@ -167,27 +168,52 @@ async function importData(event) {
   event.target.value = '';
 }
 
-// Save last selected week and day
+// Save the current session as one value so a week and its workout cannot drift
+// apart if the page closes between two localStorage writes.
+const SESSION_STORE_KEY = 'lifttracker_last_session';
+
 function saveLastSession() {
-  localStorage.setItem('lifttracker_last_week', $('#week').value);
-  localStorage.setItem('lifttracker_last_day', $('#day').value);
+  const week = Number($('#week').value);
+  const dayValue = $('#day').value;
+  const dayId = getDayIdFromDayValue(dayValue);
+  if (!Number.isInteger(week) || !Number.isInteger(dayId)) return;
+
+  const session = { week, dayId };
+  localStorage.setItem(SESSION_STORE_KEY, JSON.stringify(session));
+  // Keep the older keys populated for older app versions and existing data.
+  localStorage.setItem('lifttracker_last_week', String(week));
+  localStorage.setItem('lifttracker_last_day', dayValue);
 }
 
-// Restore last selected week and day
+// Restore a valid week/day pair, migrating the older split keys when needed.
 function restoreLastSession() {
-  const lastWeek = localStorage.getItem('lifttracker_last_week');
-  const lastDay = localStorage.getItem('lifttracker_last_day');
-  if (lastWeek) {
-    $('#week').value = lastWeek;
-    // Rebuild dropdown options for the restored week so values match
-    updateDayDropdown();
+  const cycleLength = Math.max(2, Number(state.cycleLength) || 6);
+  const fallbackDayId = state.days[0]?.id;
+  let saved = null;
+
+  try {
+    const serialized = localStorage.getItem(SESSION_STORE_KEY);
+    if (serialized) saved = JSON.parse(serialized);
+  } catch (_) { /* Recover from a malformed session by using the legacy keys. */ }
+
+  if (!saved) {
+    const legacyWeek = Number(localStorage.getItem('lifttracker_last_week'));
+    const legacyDay = localStorage.getItem('lifttracker_last_day');
+    const legacyDayId = legacyDay ? getDayIdFromDayValue(legacyDay) : NaN;
+    saved = { week: legacyWeek, dayId: legacyDayId };
   }
-  if (lastDay) {
-    // Check if the saved day value exists in the current dropdown
-    const daySelect = $('#day');
-    const optionExists = Array.from(daySelect.options).some(opt => opt.value === lastDay);
-    if (optionExists) {
-      daySelect.value = lastDay;
-    }
-  }
+
+  const requestedWeek = Number(saved.week);
+  const week = Number.isFinite(requestedWeek)
+    ? Math.min(cycleLength, Math.max(1, Math.floor(requestedWeek)))
+    : 1;
+  const dayId = state.days.some(day => day.id === Number(saved.dayId))
+    ? Number(saved.dayId)
+    : fallbackDayId;
+
+  $('#week').max = cycleLength;
+  $('#week').value = week;
+  updateDayDropdown();
+  if (dayId !== undefined) $('#day').value = `${week}-${dayId}`;
+  saveLastSession();
 }

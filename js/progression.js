@@ -58,6 +58,8 @@ function buildProgressionDatasets(type) {
 }
 
 function progressionChartOptions(yLabel, yMin, yMax, fmtFn) {
+  const muted = getCssToken('--muted');
+  const grid = getCssToken('--line');
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -68,12 +70,12 @@ function progressionChartOptions(yLabel, yMin, yMax, fmtFn) {
       tooltip: { callbacks: { label: fmtFn || (c => `${c.dataset.label}: ${c.parsed.y}`) } }
     },
     scales: {
-      x: { ticks: { color: '#8b95a7', font: { size: 11 } }, grid: { color: '#1e2230' } },
+      x: { ticks: { color: muted, font: { size: 11 } }, grid: { color: grid } },
       y: {
         min: yMin, max: yMax,
-        ticks: { color: '#8b95a7', font: { size: 11 } },
-        grid:  { color: '#1e2230' },
-        title: { display: true, text: yLabel, color: '#8b95a7', font: { size: 11 } }
+        ticks: { color: muted, font: { size: 11 } },
+        grid:  { color: grid },
+        title: { display: true, text: yLabel, color: muted, font: { size: 11 } }
       }
     }
   };
