@@ -2,6 +2,10 @@
 const HEVY_META_KEY = "lifttracker_hevy_setup_v2";
 const HEVY_API_BASE = "https://api.hevyapp.com/v1";
 let hevyRuntimeKey = "";
+let hevyKeySavedSecurely = null;
+let hevySecureStorageIssue = "";
+let hevyConnectionSource = "none";
+let hevySecureStoreProxy = null;
 let hevyRuntimeAccount = null;
 let hevyRuntimeTemplates = [];
 let hevyRuntimeTemplateNames = {};
@@ -246,6 +250,7 @@ async function hevyConnect(keyOverride = null) {
   try {
     const keyStatus = await hevyRequest("/api/status", {}, keyOverride);
     if (!keyStatus.configured) throw new Error(hevyIsAndroid() ? "Enter your Hevy API key first." : "Enter your Hevy API key above or configure HEVY_API_KEY on the companion.");
+    hevyConnectionSource = keyStatus.source || "session";
     const data = await hevyLoadAccountData(keyOverride);
     hevyRuntimeAccount = data.accountId;
     const profile = hevyActivateAccount(data.accountId);
@@ -255,6 +260,7 @@ async function hevyConnect(keyOverride = null) {
     profile.routineSummaries = data.routines.map(r => ({ id: String(r.id), title: r.title, folder_id: r.folder_id ?? null }));
     profile.folderTitles = Object.fromEntries(data.folders.map(folder => [String(folder.id), folder.title]));
     profile.templateNames = hevyRuntimeTemplateNames;
+    profile.accountName = data.user?.name || data.user?.username || data.user?.email || "Hevy account";
     hevySave(profile);
     $("#hevyWizard").hidden = false;
     renderHevyExerciseMappings();
@@ -262,10 +268,12 @@ async function hevyConnect(keyOverride = null) {
     renderHevyControls();
     const displayName = data.user?.name || data.user?.username || data.user?.email || "Hevy account";
     $("#hevyStatus").textContent = "Connected to " + displayName + ". Map exercises and active days before syncing.";
+    hevyRenderCurrentState();
     return true;
   } catch (error) {
     $("#hevyStatus").textContent = error.message;
     $("#hevyWizard").hidden = true;
+    hevyRenderCurrentState();
     return false;
   } finally {
     button.disabled = false;
@@ -492,7 +500,83 @@ function hevySaveDayMappings() {
   renderHevyControls();
   hevySetStatus("Day and occurrence matches saved. Review all routines before the first write.");
 }
-function hevySetStatus(message) { $("#hevyStatus").textContent = message; }
+function hevySetStatus(message) {
+  $("#hevyStatus").textContent = message;
+  hevyRenderCurrentState();
+}
+function hevySecureStore() {
+  if (!hevyIsAndroid()) return null;
+  if (hevySecureStoreProxy) return hevySecureStoreProxy;
+  const capacitor = window.Capacitor;
+  if (capacitor?.registerPlugin) {
+    hevySecureStoreProxy = capacitor.registerPlugin("HevySecureStore");
+    return hevySecureStoreProxy;
+  }
+  return capacitor?.Plugins?.HevySecureStore || null;
+}
+async function hevyRestoreSavedKey() {
+  const secureStore = hevySecureStore();
+  if (!secureStore) {
+    hevySecureStorageIssue = "Secure key storage is unavailable in this Android build.";
+    hevySetStatus("Secure key storage is unavailable in this Android build. Update or reinstall the app.");
+    return;
+  }
+  try {
+    const saved = await secureStore.getApiKey();
+    hevySecureStorageIssue = "";
+    hevyKeySavedSecurely = Boolean(saved?.saved && saved.apiKey);
+    if (hevyKeySavedSecurely) {
+      hevyRuntimeKey = saved.apiKey;
+      hevyRenderCurrentState();
+      await hevyConnect(); // Read-only account refresh; syncing remains a user action.
+    } else {
+      hevyRuntimeKey = "";
+      hevyKeySavedSecurely = false;
+      hevySetStatus("No API key is saved. Enter it once to connect.");
+    }
+  } catch (error) {
+    hevyKeySavedSecurely = false;
+    hevySecureStorageIssue = error.message || "Saved key could not be read.";
+    hevySetStatus(error.message || "The saved API key could not be read. Enter it again.");
+  }
+}
+function hevyRenderCurrentState() {
+  const profile = hevyMeta();
+  const keyState = $("#hevyKeyState");
+  if (hevyIsAndroid()) {
+    keyState.textContent = hevyKeySavedSecurely === true
+      ? "API key saved securely on this device."
+      : hevySecureStorageIssue ? hevySecureStorageIssue
+        : hevyKeySavedSecurely === false ? "No saved API key on this device." : "Checking secure key storage…";
+  } else {
+    keyState.textContent = hevyConnectionSource === "session" || hevyConnectionSource === "environment"
+      ? "Browser key is held by the local companion."
+      : "Browser key is not connected to the local companion.";
+  }
+  if (!profile) {
+    $("#hevyCurrentState").textContent = "No saved Hevy mappings on this device.";
+    return;
+  }
+  const activeExercises = hevyActiveExercises();
+  const activeDays = hevyActiveDays();
+  const mappedExercises = activeExercises.filter(ex => profile.exerciseMap?.[String(ex.id)]).length;
+  const mappedDays = activeDays.filter(day => profile.dayRoutines?.[String(day.id)]).length;
+  const currentAccount = hevyRuntimeAccount && String(profile.accountId) === String(hevyRuntimeAccount);
+  const pieces = ["Saved mappings for account " + profile.accountId + ": " + mappedExercises + "/" + activeExercises.length + " exercises, " + mappedDays + "/" + activeDays.length + " days."];
+  if (currentAccount) {
+    const errors = hevyValidateSetup(profile);
+    pieces.push(errors.length ? "Connected; review needed: " + errors[0] : "Verified for the connected account and ready for manual sync.");
+  } else {
+    pieces.push("Not connected; saved mappings remain on this device and will be checked when you reconnect.");
+  }
+  if (profile.syncStatus === "failed" && profile.lastSyncAttempt) {
+    pieces.push("Last sync failed at " + new Date(profile.lastSyncAttempt).toLocaleString() + (profile.syncError ? ": " + profile.syncError : "."));
+  } else if (profile.syncStatus === "syncing" && profile.lastSyncAttempt) {
+    pieces.push("Last sync is pending since " + new Date(profile.lastSyncAttempt).toLocaleString() + ".");
+  } else if (profile.lastSync) pieces.push("Last successful sync: " + new Date(profile.lastSync).toLocaleString() + ".");
+  else pieces.push("No successful sync yet.");
+  $("#hevyCurrentState").textContent = pieces.join(" ");
+}
 function hevyValidateSetup(profile = hevyMeta()) {
   const errors = [];
   if (!profile) return ["Connect to Hevy first."];
@@ -731,6 +815,8 @@ async function hevyApplyPreview(enable) {
   profile.enabled = enable || profile.enabled;
   profile.autoSync = false;
   profile.lastSync = new Date().toISOString();
+  profile.syncStatus = "success";
+  profile.syncError = null;
   hevySave(profile);
   hevyPreview = null;
   $("#hevyEnableSync").hidden = true;
@@ -747,11 +833,23 @@ async function hevySyncAll(reason = "manual") {
     if (!profile?.enabled) throw new Error("Complete the mappings and confirm the initial review in Hevy setup before syncing.");
     const errors = hevyValidateSetup(profile);
     if (errors.length) throw new Error(errors.join(" "));
+    profile.syncStatus = "syncing";
+    profile.syncError = null;
+    profile.lastSyncAttempt = new Date().toISOString();
+    hevySave(profile);
+    hevyRenderCurrentState();
     hevySetStatus("Preparing all active-day routines (" + reason + ")…");
     await hevyReviewAllRoutines();
     if (hevyPreview?.conflicts.length) throw new Error("Sync stopped. Review the routine conflicts before continuing.");
     await hevyApplyPreview(false);
   } catch (error) {
+    const profile = hevyMeta();
+    if (profile?.enabled) {
+      profile.syncStatus = "failed";
+      profile.syncError = error.message;
+      profile.lastSyncAttempt = profile.lastSyncAttempt || new Date().toISOString();
+      hevySave(profile);
+    }
     hevySetStatus(error.message);
   } finally {
     hevySyncBusy = false;
@@ -851,15 +949,18 @@ function initHevy() {
     const candidate = field.value.trim();
     if (!candidate) return hevySetStatus("Enter your Hevy API key first.");
     if (hevyIsAndroid()) {
-      const oldKey = hevyRuntimeKey;
       try {
         await hevyRequest("/api/hevy/user/info", {}, candidate);
+        const secureStore = hevySecureStore();
+        if (!secureStore) throw new Error("Secure key storage is unavailable in this Android build. Update or reinstall the app.");
+        await secureStore.saveApiKey({ apiKey: candidate });
         hevyRuntimeKey = candidate;
+        hevyKeySavedSecurely = true;
+        hevySecureStorageIssue = "";
         field.value = "";
-        if (!(await hevyConnect())) hevyRuntimeKey = oldKey;
+        await hevyConnect();
       } catch (error) {
         field.value = "";
-        hevyRuntimeKey = oldKey;
         hevySetStatus(error.message);
       }
     } else {
@@ -872,11 +973,19 @@ function initHevy() {
   };
   $("#hevyForgetKey").onclick = async () => {
     if (hevyIsAndroid()) {
-      hevyRuntimeKey = "";
-      $("#hevyApiKey").value = "";
-      hevyRuntimeAccount = null;
-      $("#hevyWizard").hidden = true;
-      hevySetStatus("Session key forgotten. Enter it again to connect.");
+      try {
+        const secureStore = hevySecureStore();
+        if (!secureStore) throw new Error("Secure key storage is unavailable in this Android build.");
+        await secureStore.deleteApiKey();
+        hevyRuntimeKey = "";
+        hevyKeySavedSecurely = false;
+        hevySecureStorageIssue = "";
+        hevyConnectionSource = "none";
+        hevyRuntimeAccount = null;
+        $("#hevyApiKey").value = "";
+        $("#hevyWizard").hidden = true;
+        hevySetStatus("Saved key removed. Enter it again to reconnect; mappings remain saved on this device.");
+      } catch (error) { hevySetStatus(error.message); }
       return;
     }
     try {
@@ -910,7 +1019,31 @@ function initHevy() {
   };
   $("#hevyImport").onclick = hevyImport;
   renderHevy();
+  hevyRenderCurrentState();
   // Ignore legacy auto-sync preferences from earlier versions. Sync is command-only.
   const profile = hevyMeta();
   if (profile?.autoSync) { profile.autoSync = false; hevySave(profile); }
+  const oldRenderToday = window.renderToday;
+  if (typeof oldRenderToday === "function" && !oldRenderToday._hevyWrapped) {
+    const wrapped = function () {
+      hevyPreview = null;
+      const result = oldRenderToday.apply(this, arguments);
+      hevyRenderCurrentState();
+      return result;
+    };
+    wrapped._hevyWrapped = true;
+    window.renderToday = wrapped;
+  }
+  const oldPersist = window.persist;
+  if (typeof oldPersist === "function" && !oldPersist._hevyWrapped) {
+    const wrapped = function () {
+      hevyPreview = null;
+      const result = oldPersist.apply(this, arguments);
+      hevyRenderCurrentState();
+      return result;
+    };
+    wrapped._hevyWrapped = true;
+    window.persist = wrapped;
+  }
+  if (hevyIsAndroid()) return hevyRestoreSavedKey();
 }

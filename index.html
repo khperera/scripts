@@ -64,6 +64,7 @@
       <div class="card">
         <label>Hevy</label>
         <button id="hevyTodaySync">Set up Hevy sync</button>
+        <div id="hevyCurrentState" class="tiny" aria-live="polite">Checking saved Hevy state…</div>
       </div>
       <div class="card">
         <label>Unit</label>
@@ -172,9 +173,10 @@
       </div>
       <div class="card" id="hevySettings">
         <h3>Hevy sync</h3>
-        <p class="tiny">Map each exercise and active training day once. Android calls Hevy directly; in a browser, run the local companion. The entered key stays in memory for this app session.</p>
+        <p class="tiny">Map each exercise and active training day once. Android saves your API key encrypted with Android Keystore on this device; browser use keeps the key in the local companion session.</p>
         <label for="hevyApiKey">Hevy API key</label>
         <div class="row"><input id="hevyApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste API key" style="flex:1;min-width:180px;"><button id="hevySaveKey">Use key</button><button id="hevyForgetKey">Forget key</button></div>
+        <div id="hevyKeyState" class="tiny" aria-live="polite">Checking key storage…</div>
         <div class="row"><button id="hevyConnect">Connect and load my Hevy routines</button><span id="hevyStatus" class="tiny">Not connected</span></div>
         <div id="hevyWizard" hidden>
           <h4>1. Confirm exercise matches</h4>

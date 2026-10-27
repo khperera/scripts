@@ -244,9 +244,13 @@ test("batch preview preflights every routine before writing, then repeat sync is
   h.values.set("lifttracker_hevy_setup_v2", JSON.stringify({ activeAccount: "acct", profiles: { acct: profile } }));
   vm.runInContext('hevyRuntimeAccount = "acct"; hevyRuntimeRoutines = {a:{id:"a",title:"Upper A",exercises:[{exercise_template_id:"bench"}]},b:{id:"b",title:"Upper B",exercises:[{exercise_template_id:"bench"}]}}', h.ctx);
   h.getElement("#week").value = "1";
+  h.ctx.window.renderToday = () => "rendered";
+  h.ctx.window.persist = () => "saved";
   vm.runInContext("initHevy()", h.ctx);
+  assert.equal(h.ctx.window.renderToday(), "rendered");
+  assert.equal(h.ctx.window.persist(), "saved");
 
-  assert.equal(puts, 0, "sync does not happen until the Today button action");
+  assert.equal(puts, 0, "app renders and persistence never trigger sync");
   remote.b.notes = "External edit after review";
   await h.getElement("#hevyTodaySync").onclick();
   assert.equal(puts, 0, "all routines are preflighted before the first write");
@@ -291,6 +295,7 @@ test("editing prescribed values after review requires a new preview", async () =
 
 test("Android key entry validates directly, connects without companion storage, and forget clears session", async () => {
   const calls = [];
+  let storedKey = "";
   const h = context({
     window: { Capacitor: {
       getPlatform: () => "android", isPluginAvailable: () => true,
@@ -301,7 +306,11 @@ test("Android key entry validates directly, connects without companion storage, 
         if (request.url.includes("/exercise_templates?")) return { status: 200, data: { exercise_templates: [] } };
         if (request.url.includes("/routine_folders?")) return { status: 200, data: { routine_folders: [] } };
         throw new Error("Unexpected request " + request.url);
-      } } },
+      } }, HevySecureStore: {
+        getApiKey: async () => ({ apiKey: storedKey, saved: Boolean(storedKey) }),
+        saveApiKey: async ({ apiKey }) => { storedKey = apiKey; return { saved: true }; },
+        deleteApiKey: async () => { storedKey = ""; return { deleted: true }; },
+      } },
     } },
     fetch: async () => { throw new Error("No companion calls expected"); },
   });
@@ -309,9 +318,58 @@ test("Android key entry validates directly, connects without companion storage, 
   h.getElement("#hevyApiKey").value = "private-key-value";
   await vm.runInContext("$('#hevySaveKey').onclick()", h.ctx);
   assert.equal(h.getElement("#hevyApiKey").value, "");
+  assert.equal(storedKey, "private-key-value");
   assert.ok(calls.length >= 5);
   assert.ok(calls.every(call => call.headers["api-key"] === "private-key-value"));
   assert.equal([...h.values.values()].some(value => String(value).includes("private-key-value")), false);
   await vm.runInContext("$('#hevyForgetKey').onclick()", h.ctx);
+  assert.equal(storedKey, "");
   assert.equal(vm.runInContext("hevyRuntimeKey", h.ctx), "");
+});
+
+test("saved Android key reconnects read-only and restores this account's mappings and status", async () => {
+  const calls = [];
+  const storedKey = "secure-device-key";
+  const routines = [
+    { id: "routine-a", title: "Upper 1", exercises: [{ exercise_template_id: "bench", notes: "cue", sets: [] }] },
+    { id: "routine-b", title: "Upper 2", exercises: [{ exercise_template_id: "bench", notes: "pause", sets: [] }] },
+  ];
+  const h = context({
+    window: { Capacitor: {
+      getPlatform: () => "android", isPluginAvailable: () => true,
+      Plugins: {
+        HevySecureStore: { getApiKey: async () => ({ apiKey: storedKey, saved: true }) },
+        CapacitorHttp: { request: async request => {
+          calls.push(request);
+          if (request.url.endsWith("/user/info")) return { status: 200, data: { user: { id: "acct", name: "Test" } } };
+          if (request.url.includes("/routines?page=")) return { status: 200, data: { routines } };
+          if (request.url.includes("/exercise_templates?page=")) return { status: 200, data: { exercise_templates: [{ id: "bench", title: "Bench Press" }] } };
+          if (request.url.includes("/routine_folders?page=")) return { status: 200, data: { routine_folders: [] } };
+          throw new Error("Unexpected request " + request.url);
+        } },
+      },
+    } },
+    fetch: async () => { throw new Error("Android should not use companion fetch"); },
+  });
+  const profile = {
+    accountId: "acct", exerciseMap: { 11: "bench" },
+    dayRoutines: { 1: "routine-a", 2: "routine-b" }, dayOccurrences: { 1: { 0: 0 }, 2: { 0: 0 } },
+    routineSnapshots: {}, enabled: true, autoSync: true, lastSync: "2026-10-26T10:00:00.000Z", syncStatus: "success",
+  };
+  h.values.set("lifttracker_hevy_setup_v2", JSON.stringify({ activeAccount: "acct", profiles: { acct: profile } }));
+  await vm.runInContext("initHevy()", h.ctx);
+
+  assert.equal(vm.runInContext("hevyRuntimeKey", h.ctx), storedKey);
+  assert.equal(vm.runInContext("hevyRuntimeAccount", h.ctx), "acct");
+  assert.ok(calls.length > 0 && calls.every(call => call.headers["api-key"] === storedKey));
+  assert.equal(calls.some(call => call.method === "PUT"), false, "startup reconnect must never sync");
+  const restored = JSON.parse(h.values.get("lifttracker_hevy_setup_v2")).profiles.acct;
+  assert.deepEqual(restored.exerciseMap, { 11: "bench" });
+  assert.deepEqual(restored.dayRoutines, { 1: "routine-a", 2: "routine-b" });
+  assert.equal(restored.autoSync, false);
+  assert.match(h.getElement("#hevyKeyState").textContent, /saved securely/);
+  assert.match(h.getElement("#hevyCurrentState").textContent, /1\/1 exercises, 2\/2 days/);
+  assert.match(h.getElement("#hevyCurrentState").textContent, /Verified for the connected account/);
+  assert.match(h.getElement("#hevyCurrentState").textContent, /Last successful sync/);
+  assert.equal([...h.values.values()].some(value => String(value).includes(storedKey)), false);
 });

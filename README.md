@@ -27,7 +27,9 @@ LiftTracker workout data and Recovery Planner settings are stored separately in 
 
 ## Hevy connection
 
-In Android, open **Settings → Hevy sync**, paste your API key, and choose **Use key**. The key stays in app memory for the current session and must be entered again after restarting the app. Android calls Hevy directly using Capacitor native HTTP. In a regular browser, direct Hevy access depends on Hevy's CORS policy, so use the companion server below. The browser sends the key to the loopback companion, which keeps it in memory or reads `HEVY_API_KEY`. The key is never placed in LiftTracker state or exports.
+In Android, open the Hevy card on **Today**, paste your API key, and choose **Use key**. The app validates and stores it encrypted with an AES/GCM key held by Android Keystore; only encrypted data is kept in app-private preferences, excluded from Android backup. The key is restored to runtime memory after restart and sent directly to Hevy with Capacitor native HTTP. **Forget key** removes the encrypted value and its Keystore key. In a regular browser, direct Hevy access depends on Hevy's CORS policy, so use the companion server below. The browser sends the key to the loopback companion, which keeps it in memory or reads `HEVY_API_KEY`. The API key is never placed in LiftTracker state or exports.
+
+Exercise and day mappings are stored locally per Hevy account and survive app restarts. The Today page reports saved mapping counts, whether the current account mappings have been verified after connecting, and the last sync outcome/time. Restoring a saved API key reconnects for a read-only mapping refresh; it never syncs automatically.
 
 Setup preselects the closest Hevy exercise-name match for each active LiftTracker exercise, prioritizing templates used in the user's routines. Review and edit each selection before saving; a suggestion alone does not count as confirmation. Then map each active training day to a distinct Hevy routine. Repeated exercises require selecting their specific routine occurrence. No routine is changed until all mappings are complete and the user reviews the full preview.
 
@@ -41,7 +43,7 @@ For browser use, start the companion and open `http://127.0.0.1:8787`:
 python3 hevy-server.py
 ```
 
-The key is forgotten when the companion exits or when you choose **Forget key**. Live Hevy API validation requires access to `api.hevyapp.com`.
+The browser companion forgets a session key when it exits or when you choose **Forget key**. Live Hevy API validation requires access to `api.hevyapp.com`.
 
 ## Project Structure
 
