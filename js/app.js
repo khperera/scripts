@@ -1,4 +1,20 @@
 /* ---------- Tab Navigation ---------- */
+const APP_THEME_KEY = 'lifttracker_theme';
+const APP_THEMES = ['forest', 'graphite', 'midnight'];
+
+function applyAppTheme(theme) {
+  const selectedTheme = APP_THEMES.includes(theme) ? theme : 'forest';
+  document.documentElement.dataset.theme = selectedTheme;
+  try { localStorage.setItem(APP_THEME_KEY, selectedTheme); } catch (_) {}
+
+  const themeColors = { forest: '#153E35', graphite: '#111317', midnight: '#0b1220' };
+  const themeColorMeta = $('meta[name="theme-color"]');
+  if (themeColorMeta) themeColorMeta.content = themeColors[selectedTheme];
+
+  const themeSelect = $('#themeSelect');
+  if (themeSelect) themeSelect.value = selectedTheme;
+}
+
 function renderTabs() {
   const hamburgerBtn = $('#hamburgerBtn');
   const hamburgerMenu = $('#hamburgerMenu');
@@ -49,6 +65,7 @@ function renderTabs() {
         case 'settings': renderSettings(); break;
         case 'progression': renderProgression(); break;
         case 'analytics': renderAnalytics(); break;
+        case 'planner': break;
       }
     };
   });
@@ -89,6 +106,9 @@ function setupEventListeners() {
 
   // Import file input
   $('#importFile').onchange = importData;
+
+  // Appearance is a device-local preference, independent of training data.
+  $('#themeSelect').onchange = () => applyAppTheme($('#themeSelect').value);
 }
 
 /* ---------- Initialization ---------- */
@@ -114,6 +134,8 @@ function initialize() {
 
 // Start the app when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
+  applyAppTheme(document.documentElement.dataset.theme || 'forest');
+
   // Bind analytics controls
   $('#analyticsView').onchange = () => { populateAnalyticsFilter(true); renderAnalytics(); };
   $('#analyticsPeriod').onchange = renderAnalytics;

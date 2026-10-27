@@ -4,11 +4,27 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>LiftTracker</title>
+<meta name="theme-color" content="#153E35" />
+<script>
+  try {
+    const savedTheme = localStorage.getItem('lifttracker_theme');
+    const theme = ['graphite', 'midnight'].includes(savedTheme) ? savedTheme : 'forest';
+    document.documentElement.dataset.theme = theme;
+    const themeColors = { forest: '#153E35', graphite: '#111317', midnight: '#0b1220' };
+    document.querySelector('meta[name="theme-color"]').content = themeColors[theme];
+  } catch (_) {
+    document.documentElement.dataset.theme = 'forest';
+  }
+</script>
+<link rel="icon" type="image/svg+xml" href="assets/lifttracker-icon.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png" />
+<link rel="manifest" href="manifest.webmanifest" />
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 <header>
-  <h1>LiftTracker</h1>
+  <h1><img class="brand-icon" src="assets/lifttracker-icon.svg" alt="" aria-hidden="true">LiftTracker</h1>
   <button id="hamburgerBtn" aria-label="Menu" aria-expanded="false">&#9776;</button>
   <nav id="hamburgerMenu" class="hamburger-menu" hidden>
     <button class="tab active" data-page="today">Today</button>
@@ -18,6 +34,7 @@
     <button class="tab" data-page="settings">Settings</button>
     <button class="tab" data-page="progression">Progression</button>
     <button class="tab" data-page="analytics">Analytics</button>
+    <button class="tab" data-page="planner">Recovery Planner</button>
   </nav>
   <div style="margin-left: auto;" class="row">
     <button id="exportBtn">Export</button>
@@ -177,6 +194,16 @@
           <button id="hevyImport">Import workout results</button>
           <div id="hevyResults" class="tiny"></div>
         </div>
+      </div>
+      <div class="card">
+        <h3>Appearance</h3>
+        <label for="themeSelect">Dark palette</label>
+        <select id="themeSelect">
+          <option value="forest">Forest</option>
+          <option value="graphite">Graphite</option>
+          <option value="midnight">Midnight blue</option>
+        </select>
+        <p class="tiny">Choose the dark palette that suits your setup. Saved on this device.</p>
       </div>
     </div>
   </section>
@@ -341,6 +368,9 @@
         <tbody></tbody>
       </table>
     </div>
+  </section>
+  <section id="page-planner" hidden aria-label="14-day concurrent training recovery planner">
+    <iframe title="14-day concurrent training recovery planner" src="planner.html" loading="lazy" class="planner-frame" style="display:block;width:100%;height:calc(100vh - 90px);min-height:760px;border:0;border-radius:12px;background:#f7f7f4;"></iframe>
   </section>
 </main>
 

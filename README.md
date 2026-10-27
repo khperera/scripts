@@ -1,8 +1,8 @@
 # LiftTracker
 
-A modular, **vanilla HTML/CSS/JavaScript** weightlifting tracker that runs in the browser. No build step, bundler, or framework is required. Hevy sync uses Capacitor native HTTP in the Android app. A small Python standard-library companion is available for browser testing when direct browser CORS access is unavailable.
+A modular, **vanilla HTML/CSS/JavaScript** weightlifting tracker that runs entirely in the browser. No build step, no bundler, no backend, and no framework required.
 
-Training state is stored locally, so the tracker remains usable offline. Hevy sync requires an internet connection.
+LiftTracker workout data and Recovery Planner settings are stored separately in browser storage. Planner schedules persist in this browser, but they are not included in LiftTracker JSON export/import. The planner files are included in the production build.
 
 ## Features
 
@@ -27,13 +27,13 @@ Training state is stored locally, so the tracker remains usable offline. Hevy sy
 
 ## Hevy connection
 
-In Android, open **Settings → Hevy sync**, paste your API key, and choose **Use key**. The key stays in app memory for the current session and must be entered again after restarting the app. The Android app calls Hevy directly using Capacitor native HTTP; it does not need the companion server. In a regular browser, direct Hevy access depends on Hevy's CORS policy, so use the companion below. The browser sends the key to the loopback companion, which keeps it in memory (or reads `HEVY_API_KEY` from its environment). It is never placed in LiftTracker state or exports.
+In Android, open **Settings → Hevy sync**, paste your API key, and choose **Use key**. The key stays in app memory for the current session and must be entered again after restarting the app. Android calls Hevy directly using Capacitor native HTTP. In a regular browser, direct Hevy access depends on Hevy's CORS policy, so use the companion server below. The browser sends the key to the loopback companion, which keeps it in memory or reads `HEVY_API_KEY`. The key is never placed in LiftTracker state or exports.
 
-Setup has two mapping steps. First confirm each LiftTracker exercise against Hevy's exercise catalog; exact title suggestions are provided, prioritizing exercises already used in your routines. Then map each active LiftTracker training day to a distinct Hevy routine. If an exercise appears more than once, select the exact routine occurrence. No routine is changed until every active mapping is complete and you review the complete preview.
+Setup requires confirming every active LiftTracker exercise against a Hevy exercise template, then mapping each active training day to a distinct Hevy routine. Exact title suggestions prioritize templates used in the user's routines. Repeated exercises require selecting their specific routine occurrence. No routine is changed until all mappings are complete and the user reviews the full preview.
 
-The first confirmed sync prepares every mapped routine for the selected week. For each mapped exercise it writes the Today top-set prescription, then the remaining template set slots as five-rep mini sets using the 13-rep-derived load. Warmups, special sets, notes, rest times, supersets, and unrelated routine exercises are preserved. After the first confirmed sync, automatic sync can update all mapped routines when the app is open and the selected week or prescription changes. External routine edits stop the batch for review. Sync updates routines only; it does not create a completed workout or start a session in Hevy.
+The first confirmed sync prepares every mapped routine for the selected week. Each mapped exercise receives the Today top-set prescription, followed by the remaining template set slots as five-rep mini sets at the 13-rep-derived load. Warmups, special sets, notes, rest times, supersets, and unrelated exercises are preserved. Automatic sync is opt-in, requires one successful initial sync, and runs while the app is open when the selected week or prescription changes. Conflicts stop a batch before any write. Hevy saves routines one at a time, so a connection failure during saving can leave some routines updated. Sync updates routines; it does not create completed workouts or launch Hevy.
 
-Workout history import is manual. Imported sets use LiftTracker's e1RM calculation with the recorded RPE, or RPE 10 if Hevy does not provide one. Results are shown separately and do not change training maxes.
+Workout history import is manual. It computes the highest estimated 1RM for each exercise across the fetched workout history (up to 1,000 workouts per import), using LiftTracker's e1RM formula and the set's RPE or RPE 10 when missing. Imported records stay separate and do not change training maxes.
 
 For browser use, start the companion and open `http://127.0.0.1:8787`:
 
@@ -41,14 +41,15 @@ For browser use, start the companion and open `http://127.0.0.1:8787`:
 python3 hevy-server.py
 ```
 
-The key is forgotten when the companion exits or when you choose **Forget key**. Live Hevy API validation may require network access to `api.hevyapp.com`.
+The key is forgotten when the companion exits or when you choose **Forget key**. Live Hevy API validation requires access to `api.hevyapp.com`.
 
 ## Project Structure
 
 ```
 scripts/
 ├── index.html              # HTML entry point
-├── hevy-server.py          # Optional loopback companion; holds API key
+├── planner.html            # 14-day concurrent training recovery planner
+├── hevy-server.py          # Optional loopback companion; holds the API key in memory
 ├── css/
 │   └── styles.css          # All styles
 ├── js/
@@ -60,10 +61,10 @@ scripts/
 │   ├── progression.js      # Interactive progression charts
 │   ├── analytics.js        # Trend analysis and summaries
 │   ├── app.js              # App initialization and event listeners
-│   └── hevy.js             # Hevy mapping, routine sync, and result import
+│   └── hevy.js             # Hevy mapping, routine sync, and workout import
 ├── tests/
 │   ├── hamburger.spec.js   # Playwright E2E tests
-│   ├── hevy-client.test.cjs # Mocked routine and import behavior
+│   ├── hevy-client.test.cjs # Hevy mapping/sync/import tests
 │   └── test_hevy_server.py # Companion server safety tests
 └── package.json            # Dev dependency (Playwright)
 ```
@@ -79,6 +80,7 @@ scripts/
 | **Settings** | Configure progression rates and units (lb/kg) |
 | **Progression** | Interactive charts for RPE and rep percentages (draggable) |
 | **Analytics** | Trends, summaries, and e1RM charts |
+| **Recovery Planner** | Plan a repeating 14-day lifting and cycling schedule with recovery constraints |
 
 ## How It Works
 

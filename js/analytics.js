@@ -218,7 +218,7 @@ function buildTrendline(values) {
 
 function drawNoDataMessage(ctx, msg = 'Not enough data for this selection and period.') {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  ctx.fillStyle = '#8b95a7';
+  ctx.fillStyle = getCssToken('--muted');
   ctx.font = '14px system-ui';
   ctx.textAlign = 'center';
   ctx.fillText(msg, ctx.canvas.width / 2, ctx.canvas.height / 2);
@@ -231,6 +231,9 @@ function renderAnalytics() {
   const period = Number($('#analyticsPeriod').value);
   const filterVal = $('#analyticsFilter').value;
   const periodLabel = period >= 9999 ? 'All Time' : `${period}d`;
+  const chartText = getCssToken('--text');
+  const chartMuted = getCssToken('--muted');
+  const chartGrid = getCssToken('--line');
 
   if (e1rmChartInstance) { e1rmChartInstance.destroy(); e1rmChartInstance = null; }
   if (categoryChartInstance) { categoryChartInstance.destroy(); categoryChartInstance = null; }
@@ -315,7 +318,7 @@ function renderAnalytics() {
         options: {
           responsive: true,
           plugins: {
-            legend: { labels: { color: '#e7ecf3' } },
+            legend: { labels: { color: chartText } },
             tooltip: {
               callbacks: {
                 label: c => {
@@ -336,12 +339,12 @@ function renderAnalytics() {
             }
           },
           scales: {
-            x: { ticks: { color: '#8b95a7', maxTicksLimit: 10 }, grid: { color: '#1e2230' } },
+            x: { ticks: { color: chartMuted, maxTicksLimit: 10 }, grid: { color: chartGrid } },
             y: {
               position: 'left',
-              ticks: { color: '#8b95a7', callback: v => v + ' ' + state.unit },
-              grid: { color: '#1e2230' },
-              title: { display: true, text: `Weight (${state.unit})`, color: '#8b95a7' }
+              ticks: { color: chartMuted, callback: v => v + ' ' + state.unit },
+              grid: { color: chartGrid },
+              title: { display: true, text: `Weight (${state.unit})`, color: chartMuted }
             },
             yReps: {
               position: 'right',
@@ -436,7 +439,7 @@ function renderAnalytics() {
         options: {
           responsive: true,
           plugins: {
-            legend: { labels: { color: '#e7ecf3', boxWidth: 12 } },
+            legend: { labels: { color: chartText, boxWidth: 12 } },
             tooltip: {
               callbacks: {
                 label: c => `${c.dataset.label}: ${c.parsed.y !== null ? (c.parsed.y >= 0 ? '+' : '') + c.parsed.y.toFixed(2) + '%' : '—'}`
@@ -444,11 +447,11 @@ function renderAnalytics() {
             }
           },
           scales: {
-            x: { ticks: { color: '#8b95a7', maxTicksLimit: 10 }, grid: { color: '#1e2230' } },
+            x: { ticks: { color: chartMuted, maxTicksLimit: 10 }, grid: { color: chartGrid } },
             y: {
-              ticks: { color: '#8b95a7', callback: v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%' },
-              grid: { color: '#1e2230' },
-              title: { display: true, text: '% Change from Period Start', color: '#8b95a7' }
+              ticks: { color: chartMuted, callback: v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%' },
+              grid: { color: chartGrid },
+              title: { display: true, text: '% Change from Period Start', color: chartMuted }
             }
           }
         }
@@ -499,15 +502,15 @@ function renderAnalytics() {
       options: {
         responsive: true,
         plugins: {
-          legend: { labels: { color: '#e7ecf3' } },
+          legend: { labels: { color: chartText } },
           tooltip: { callbacks: { label: c => `${c.parsed.y >= 0 ? '+' : ''}${c.parsed.y.toFixed(2)}% avg` } }
         },
         scales: {
-          x: { ticks: { color: '#8b95a7' }, grid: { color: '#1e2230' } },
+          x: { ticks: { color: chartMuted }, grid: { color: chartGrid } },
           y: {
-            ticks: { color: '#8b95a7', callback: v => v + '%' },
-            grid: { color: '#1e2230' },
-            title: { display: true, text: 'Avg % Change from Period Start', color: '#8b95a7' }
+            ticks: { color: chartMuted, callback: v => v + '%' },
+            grid: { color: chartGrid },
+            title: { display: true, text: 'Avg % Change from Period Start', color: chartMuted }
           }
         }
       }

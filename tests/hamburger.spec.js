@@ -77,6 +77,7 @@ test.describe('Hamburger Menu', () => {
     { page: 'rpe-schedule',    sectionId: 'page-rpe-schedule' },
     { page: 'rep-progression', sectionId: 'page-rep-progression' },
     { page: 'analytics',       sectionId: 'page-analytics' },
+    { page: 'planner',         sectionId: 'page-planner' },
   ];
 
   for (const { page: tabPage, sectionId } of tabs) {
@@ -97,4 +98,20 @@ test.describe('Hamburger Menu', () => {
       await expect(page.locator(`.tab[data-page="${tabPage}"]`)).toHaveClass(/active/);
     });
   }
+});
+
+
+test('recovery planner loads in its page and retains its own schedule settings', async ({ page }) => {
+  await page.goto(APP_URL);
+  await page.locator('#hamburgerBtn').click();
+  await page.locator('.tab[data-page="planner"]').click();
+  const frame = page.frameLocator('#page-planner iframe');
+  await expect(frame.locator('h1')).toContainText('14-day bike + lifting planner');
+  await frame.locator('#ftp').fill('245');
+  await frame.locator('#ftp').dispatchEvent('change');
+  await expect.poll(async () => frame.locator('#saveNote').textContent()).toContain('Saved');
+  await page.reload();
+  await page.locator('#hamburgerBtn').click();
+  await page.locator('.tab[data-page="planner"]').click();
+  await expect(page.frameLocator('#page-planner iframe').locator('#ftp')).toHaveValue('245');
 });

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" role="img" aria-labelledby="title">
+  <title id="title">LiftTracker barbell arrow</title>
+  <rect width="100" height="100" rx="25" fill="#C7F36B"/>
+  <g fill="#153E35">
+    <rect x="10" y="43" width="7" height="14" rx="2.5"/>
+    <path d="M80 29 96 50 80 71V56H35V44H80Z"/>
+    <rect x="20" y="28" width="8" height="44" rx="3"/>
+    <rect x="30" y="28" width="8" height="44" rx="3"/>
+    <rect x="60" y="28" width="8" height="44" rx="3"/>
+    <rect x="70" y="28" width="8" height="44" rx="3"/>
+  </g>
+</svg>

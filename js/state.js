@@ -222,6 +222,10 @@ function $(selector) {
   return document.querySelector(selector);
 }
 
+function getCssToken(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
 function fmt(number) {
   return Number(number).toFixed(0);
 }

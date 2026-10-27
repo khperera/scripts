@@ -128,12 +128,25 @@ class Handler(BaseHTTPRequestHandler):
         relative = 'index.html' if pathname == '/' else pathname.lstrip('/')
         file = (ROOT / relative).resolve()
         # Serve only app assets, never dotfiles, exports, server files, or dependencies.
-        permitted = relative == 'index.html' or (relative.startswith(('js/', 'css/')) and file.suffix in ('.js', '.css'))
+        permitted = (
+            relative in ('index.html', 'planner.html', 'manifest.webmanifest') or
+            (relative.startswith(('js/', 'css/')) and file.suffix in ('.js', '.css')) or
+            (relative.startswith('assets/') and file.suffix == '.svg') or
+            (relative.startswith('icons/') and file.suffix in ('.png', '.svg'))
+        )
         if not permitted or not file.is_relative_to(ROOT) or not file.is_file():
             return self.respond(404, {'error': 'Not found.'})
         data = file.read_bytes()
         self.send_response(200)
-        self.send_header('Content-Type', {'.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8'}[file.suffix])
+        mime_type = {
+            '.html': 'text/html; charset=utf-8',
+            '.js': 'text/javascript; charset=utf-8',
+            '.css': 'text/css; charset=utf-8',
+            '.webmanifest': 'application/manifest+json',
+            '.svg': 'image/svg+xml',
+            '.png': 'image/png',
+        }[file.suffix]
+        self.send_header('Content-Type', mime_type)
         self.send_header('Cache-Control', 'no-store')
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Content-Length', str(len(data)))

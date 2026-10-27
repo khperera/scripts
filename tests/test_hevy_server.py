@@ -46,6 +46,10 @@ class CompanionTests(unittest.TestCase):
         for route in ['/hevy-server.py', '/.git/config', '/package.json', '/lifttracker-2025-08-28.json', '/js/../hevy-server.py']:
             self.assertEqual(self.request(route)[0], 404)
         self.assertEqual(self.request('/')[0], 200)
+        self.assertEqual(self.request('/planner.html')[0], 200)
+        self.assertEqual(self.request('/manifest.webmanifest')[0], 200)
+        self.assertEqual(self.request('/assets/lifttracker-icon.svg')[0], 200)
+        self.assertEqual(self.request('/icons/favicon-32x32.png')[0], 200)
 
     def test_uuid_reads_and_write_allowlist(self):
         rid = '12345678-abcd-1234-5678-123456789abc'
