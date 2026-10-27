@@ -2,6 +2,7 @@
 function updateDayDropdown() {
   const week = Number($('#week').value) || 1;
   const daySelect = $('#day');
+  const previousDayId = daySelect.value ? getDayIdFromDayValue(daySelect.value) : NaN;
   daySelect.innerHTML = '';
 
   state.days.forEach(day => {
@@ -10,6 +11,10 @@ function updateDayDropdown() {
     option.textContent = `Week ${week} - ${day.name}`;
     daySelect.appendChild(option);
   });
+
+  if (state.days.some(day => day.id === previousDayId)) {
+    daySelect.value = `${week}-${previousDayId}`;
+  }
 }
 
 function getDayIdFromDayValue(dayValue) {
@@ -44,6 +49,7 @@ function advanceDay() {
   }
 
   renderToday();
+  saveLastSession();
 }
 
 /* ---------- Page Rendering Functions ---------- */
