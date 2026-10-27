@@ -5,12 +5,21 @@ import re
 import urllib.error
 import urllib.parse
 import urllib.request
+import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 API = 'https://api.hevyapp.com/v1'
 MAX_BODY = 200_000
+MAX_KEY_LENGTH = 4096
+_session_api_key = None
+_key_lock = threading.Lock()
+
+
+def active_api_key():
+    with _key_lock:
+        return _session_api_key or os.environ.get('HEVY_API_KEY')
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -19,7 +28,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 def upstream(method, route, body=None):
-    key = os.environ.get('HEVY_API_KEY')
+    key = active_api_key()
     if not key:
         return 503, {'error': 'HEVY_API_KEY is not configured on the companion.'}
     request = urllib.request.Request(API + route, data=body, method=method,
@@ -52,6 +61,7 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def dispatch(self):
+        global _session_api_key
         host = self.headers.get('Host', '')
         port = self.server.server_address[1]
         if host not in (f'127.0.0.1:{port}', f'localhost:{port}'):
@@ -61,7 +71,32 @@ class Handler(BaseHTTPRequestHandler):
             return self.respond(403, {'error': 'Same-origin requests only.'})
         url = urllib.parse.urlsplit(self.path)
         if url.path == '/api/status' and self.command == 'GET':
-            return self.respond(200, {'configured': bool(os.environ.get('HEVY_API_KEY'))})
+            with _key_lock:
+                source = 'session' if _session_api_key else ('environment' if os.environ.get('HEVY_API_KEY') else 'none')
+            return self.respond(200, {'configured': source != 'none', 'source': source})
+        if url.path in ('/api/key', '/api/key/'):
+            if origin != 'http://' + host or self.headers.get('Content-Type', '').split(';')[0] != 'application/json':
+                return self.respond(403, {'error': 'Same-origin JSON is required.'})
+            if self.command == 'POST':
+                try:
+                    length = int(self.headers.get('Content-Length', '0'))
+                    if not 0 < length <= MAX_KEY_LENGTH + 100:
+                        return self.respond(413, {'error': 'Invalid key request size.'})
+                    payload = json.loads(self.rfile.read(length))
+                    key = payload.get('api_key') if isinstance(payload, dict) else None
+                    if not isinstance(key, str) or not key.strip() or len(key.strip()) > MAX_KEY_LENGTH:
+                        return self.respond(400, {'error': 'Enter a valid API key.'})
+                    with _key_lock:
+                        _session_api_key = key.strip()
+                    return self.respond(200, {'configured': True, 'source': 'session'})
+                except (ValueError, TypeError):
+                    return self.respond(400, {'error': 'Expected an API key JSON value.'})
+            if self.command == 'DELETE':
+                with _key_lock:
+                    _session_api_key = None
+                    source = 'environment' if os.environ.get('HEVY_API_KEY') else 'none'
+                return self.respond(200, {'configured': source != 'none', 'source': source})
+            return self.respond(405, {'error': 'Method is not available.'})
         if url.path.startswith('/api/hevy/'):
             route = url.path[len('/api/hevy'):]
             lists = {'/user/info', '/exercise_templates', '/routines', '/workouts', '/workouts/events'}

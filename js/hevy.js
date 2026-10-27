@@ -47,7 +47,10 @@ async function hevyRequest(path, opts = {}) {
 async function hevyConnect() {
   try {
     const s = await hevyRequest("/api/status");
-    if (!s.configured) throw Error("Set HEVY_API_KEY on the companion server.");
+    if (!s.configured)
+      throw Error(
+        "Enter a Hevy API key above or configure HEVY_API_KEY on the companion.",
+      );
     const info = await hevyRequest("/api/hevy/user/info");
     let list = [],
       page = 1;
@@ -70,7 +73,7 @@ async function hevyConnect() {
       select.appendChild(o);
     });
     $("#hevyStatus").textContent =
-      `Connected${info.user ? ` as ${info.user.username || info.user.email || ""}` : ""}. Loaded ${list.length} routines.`;
+      `Connected using the ${s.source === "session" ? "entered key" : "environment key"}${info.user ? ` as ${info.user.username || info.user.email || ""}` : ""}. Loaded ${list.length} routines.`;
     let m = hevyMeta();
     const account = String(
       info.user?.id || info.user?.email || info.user?.username || "connected",
@@ -431,6 +434,36 @@ function initHevy() {
   };
   $("#hevyLoadExercises").onclick = hevyLoadExerciseMappings;
   $("#hevyConnect").onclick = hevyConnect;
+  $("#hevySaveKey").onclick = async () => {
+    const field = $("#hevyApiKey");
+    const key = field.value.trim();
+    if (!key) {
+      $("#hevyStatus").textContent = "Enter your Hevy API key first.";
+      return;
+    }
+    try {
+      await hevyRequest("/api/key", {
+        method: "POST",
+        body: JSON.stringify({ api_key: key }),
+      });
+      field.value = "";
+      await hevyConnect();
+    } catch (e) {
+      $("#hevyStatus").textContent = e.message;
+    }
+  };
+  $("#hevyForgetKey").onclick = async () => {
+    try {
+      const status = await hevyRequest("/api/key", { method: "DELETE" });
+      $("#hevyApiKey").value = "";
+      if (status.configured) await hevyConnect();
+      else
+        $("#hevyStatus").textContent =
+          "Entered key forgotten. No key is configured.";
+    } catch (e) {
+      $("#hevyStatus").textContent = e.message;
+    }
+  };
   $("#hevyPush").onclick = () =>
     hevyPush().catch((e) => ($("#hevyStatus").textContent = e.message));
   $("#hevyImport").onclick = hevyImport;

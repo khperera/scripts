@@ -207,3 +207,91 @@ test("workout import uses LiftTracker e1RM, defaults missing RPE to 10, and leav
   assert.match(result.textContent, /Session/);
   assert.equal(ctx.state.exercises[0].tm, 85);
 });
+
+test("key controls send the entered key to the companion and never save it in browser storage", async () => {
+  const values = new Map();
+  const requests = [];
+  const elements = new Map();
+  const element = (id) => {
+    if (!elements.has(id))
+      elements.set(id, {
+        value: "",
+        textContent: "",
+        innerHTML: "",
+        checked: false,
+        dataset: {},
+        appendChild() {},
+        replaceChildren() {},
+        querySelectorAll() {
+          return [];
+        },
+      });
+    return elements.get(id);
+  };
+  const ctx = {
+    localStorage: {
+      getItem: (k) => values.get(k) || null,
+      setItem: (k, v) => values.set(k, v),
+      removeItem: (k) => values.delete(k),
+    },
+    window: { renderToday() {} },
+    document: { createElement: () => ({}) },
+    Option: function (text, value) {
+      return { text, value };
+    },
+    $: (selector) => element(selector.slice(1)),
+    state: {
+      days: [],
+      exercises: [],
+      templates: {},
+      unit: "kg",
+      settings: { minJump: 2.5 },
+    },
+    fetch: async (url, opts = {}) => {
+      requests.push({ url, opts });
+      if (url === "/api/key" && opts.method === "POST")
+        return {
+          ok: true,
+          json: async () => ({ configured: true, source: "session" }),
+        };
+      if (url === "/api/key" && opts.method === "DELETE")
+        return {
+          ok: true,
+          json: async () => ({ configured: false, source: "none" }),
+        };
+      return {
+        ok: true,
+        json: async () => ({ configured: false, source: "none" }),
+      };
+    },
+    setTimeout,
+    clearTimeout,
+    console,
+  };
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync("js/hevy.js", "utf8"), ctx);
+  vm.runInContext("initHevy()", ctx);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  element("hevyApiKey").value = "user-entered-secret";
+  await vm.runInContext("$('#hevySaveKey').onclick()", ctx);
+  assert.equal(element("hevyApiKey").value, "");
+  assert.equal(
+    JSON.parse(
+      requests.find((r) => r.url === "/api/key" && r.opts.method === "POST")
+        .opts.body,
+    ).api_key,
+    "user-entered-secret",
+  );
+  assert.equal(
+    [...values.values()].some((v) => String(v).includes("user-entered-secret")),
+    false,
+  );
+  await vm.runInContext("$('#hevyForgetKey').onclick()", ctx);
+  assert.ok(
+    requests.some((r) => r.url === "/api/key" && r.opts.method === "DELETE"),
+  );
+  assert.equal(
+    [...values.values()].some((v) => String(v).includes("user-entered-secret")),
+    false,
+  );
+});

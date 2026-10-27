@@ -151,7 +151,9 @@
       </div>
       <div class="card" id="hevySettings">
         <h3>Hevy sync</h3>
-        <p class="tiny">Connect through the local companion. Your API key stays on the server.</p>
+        <p class="tiny">Enter your Hevy API key here, or use one already set on the companion. An entered key stays in companion memory and is cleared when it exits.</p>
+        <label for="hevyApiKey">Hevy API key</label>
+        <div class="row"><input id="hevyApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste API key" style="flex:1;min-width:180px;"><button id="hevySaveKey">Use key</button><button id="hevyForgetKey">Forget key</button></div>
         <div class="row"><button id="hevyConnect">Check connection</button><span id="hevyStatus" class="tiny">Checking companion…</span></div>
         <label>LiftTracker day to sync</label><select id="hevyDay"></select>
         <label>Hevy routine</label><select id="hevyRoutine"><option value="">Load routines first</option></select>

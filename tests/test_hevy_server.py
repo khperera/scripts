@@ -15,12 +15,14 @@ spec.loader.exec_module(bridge)
 
 class CompanionTests(unittest.TestCase):
     def setUp(self):
+        bridge._session_api_key = None
         self.server = bridge.ThreadingHTTPServer(('127.0.0.1', 0), bridge.Handler)
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
         self.base = f'http://127.0.0.1:{self.server.server_port}'
         self.mock = patch.object(bridge, 'upstream', return_value=(200, {'ok': True})).start()
 
     def tearDown(self):
+        bridge._session_api_key = None
         patch.stopall()
         self.server.shutdown()
         self.server.server_close()
@@ -39,7 +41,7 @@ class CompanionTests(unittest.TestCase):
         with patch.dict(os.environ, {'HEVY_API_KEY': 'mock-secret'}):
             code, body = self.request('/api/status')
         self.assertEqual(code, 200)
-        self.assertEqual(json.loads(body), {'configured': True})
+        self.assertEqual(json.loads(body), {'configured': True, 'source': 'environment'})
         self.assertNotIn(b'mock-secret', body)
         for route in ['/hevy-server.py', '/.git/config', '/package.json', '/lifttracker-2025-08-28.json', '/js/../hevy-server.py']:
             self.assertEqual(self.request(route)[0], 404)
@@ -53,9 +55,38 @@ class CompanionTests(unittest.TestCase):
         self.assertEqual(self.request('/api/hevy/workouts', 'POST', {})[0], 405)
         self.assertEqual(self.request('/api/hevy/user/other')[0], 404)
 
+    def test_user_key_stays_in_memory_overrides_environment_and_forget_falls_back(self):
+        with patch.dict(os.environ, {'HEVY_API_KEY': 'environment-secret'}):
+            code, body = self.request('/api/key', 'POST', {'api_key': 'user-entered-secret'},
+                {'Origin': self.base, 'Content-Type': 'application/json'})
+            self.assertEqual(code, 200)
+            self.assertEqual(json.loads(body), {'configured': True, 'source': 'session'})
+            self.assertNotIn(b'user-entered-secret', body)
+
+            patch.stopall()
+            with patch.object(bridge.urllib.request, 'build_opener') as build:
+                build.return_value.open.side_effect = OSError('mock upstream')
+                bridge.upstream('GET', '/user/info')
+                req = build.return_value.open.call_args.args[0]
+                self.assertEqual(req.get_header('Api-key'), 'user-entered-secret')
+
+            status, status_body = self.request('/api/status')
+            self.assertEqual(status, 200)
+            self.assertEqual(json.loads(status_body), {'configured': True, 'source': 'session'})
+            self.assertNotIn(b'user-entered-secret', status_body)
+
+            code, body = self.request('/api/key', 'DELETE', {},
+                {'Origin': self.base, 'Content-Type': 'application/json'})
+            self.assertEqual(code, 200)
+            self.assertEqual(json.loads(body), {'configured': True, 'source': 'environment'})
+            self.assertIsNone(bridge._session_api_key)
+
     def test_rebinding_cross_origin_and_bad_json_rejected(self):
         self.assertEqual(self.request('/api/status', headers={'Host': 'evil.example'})[0], 403)
         self.assertEqual(self.request('/api/status', headers={'Origin': 'http://localhost:1'})[0], 403)
+        self.assertEqual(self.request('/api/key', 'POST', {'api_key': 'blocked-secret'},
+            {'Content-Type': 'application/json'})[0], 403)
+        self.assertIsNone(bridge._session_api_key)
         self.assertEqual(self.request('/api/hevy/routines/abc', 'PUT', {}, {'Content-Type': 'application/json'})[0], 403)
         self.assertEqual(self.request('/api/hevy/routines/abc', 'PUT', [], {'Origin': self.base, 'Content-Type': 'application/json'})[0], 400)
         self.mock.assert_not_called()

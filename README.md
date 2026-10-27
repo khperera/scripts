@@ -27,10 +27,10 @@ Training state is stored locally, so the tracker remains usable offline. Hevy sy
 
 ## Hevy connection
 
-Hevy requires running the local companion server instead of opening the HTML file directly. Start it with `HEVY_API_KEY` available in the server process, then open `http://127.0.0.1:8787`. The server listens on loopback and keeps the key out of browser storage and source. In Settings, connect, load Hevy exercise templates, confirm mappings, select a routine for each day, and push the selected day. Automatic sync is opt-in and starts after a successful manual sync while both the app and companion are open. Workout imports are manual; they use LiftTracker’s e1RM calculation with the set RPE (assumed to be 10 when missing), stay separate from the training log, and never change training maxes.
+Hevy requires running the local companion server instead of opening the HTML file directly. Start it and open `http://127.0.0.1:8787`; in Settings, enter the API key in the password field and choose **Use key**. An entered key stays in companion memory, overrides an optional `HEVY_API_KEY` environment key, and is forgotten when the server exits or you choose **Forget key**. The key never enters browser storage or source. Then load Hevy exercise templates, confirm mappings, select a routine for each day, and push the selected day. Automatic sync is opt-in and starts after a successful manual sync while both the app and companion are open. Workout imports are manual; they use LiftTracker’s e1RM calculation with the set RPE (assumed to be 10 when missing), stay separate from the training log, and never change training maxes.
 
 ```sh
-HEVY_API_KEY='your-key' python3 hevy-server.py
+python3 hevy-server.py
 ```
 
 ## Project Structure
