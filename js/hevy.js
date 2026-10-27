@@ -132,7 +132,6 @@ function hevyExerciseNameTokens(name) {
     .replace(/\bohp\b/g, "overhead press")
     .replace(/\bdbs?\b/g, "dumbbell")
     .replace(/\bdumbbells\b/g, "dumbbell")
-    .replace(/\bbs?b\b/g, "barbell")
     .replace(/\bbarbells\b/g, "barbell")
     .replace(/\bbb\b/g, "barbell")
     .split(/[^a-z0-9]+/)
