@@ -43,6 +43,66 @@ function context(extra = {}) {
   return { ctx, values, getElement };
 }
 
+test("closest exercise matching handles word order and gym abbreviations without matching unrelated lifts", () => {
+  const h = context();
+  h.ctx.matchTemplates = [
+    { id: "unrelated", title: "Leg Press" },
+    { id: "catalog", title: "Bench Press (Barbell)" },
+    { id: "used", title: "Barbell Bench Press" },
+  ];
+  h.ctx.usedMatches = new Set(["used"]);
+  const reordered = vm.runInContext("hevyClosestExerciseMatch('Bench Press Barbell', matchTemplates)", h.ctx);
+  const abbreviation = vm.runInContext("hevyClosestExerciseMatch('DB RDL', [{id:'rdl',title:'Dumbbell Romanian Deadlift'}])", h.ctx);
+  const unrelated = vm.runInContext("hevyClosestExerciseMatch('Bench Press', [{id:'leg',title:'Leg Press'}])", h.ctx);
+  const typo = vm.runInContext("hevyExerciseNameSimilarity('Barbel Bench Press','Barbell Bench Press')", h.ctx);
+  const usedPriority = vm.runInContext("hevyClosestExerciseMatch('Bench Press', matchTemplates, usedMatches)", h.ctx);
+  assert.equal(reordered.template.id, "catalog");
+  assert.equal(reordered.score, 1);
+  assert.equal(abbreviation.template.id, "rdl");
+  assert.equal(unrelated, null);
+  assert.ok(typo > 0.65);
+  assert.equal(usedPriority.template.id, "used");
+});
+
+test("suggested exercise is preselected but remains unconfirmed until saved by the user", () => {
+  const h = context();
+  const container = h.getElement("#hevyExerciseMappings");
+  container.children = [];
+  container.replaceChildren = function (...children) { this.children = children; };
+  container.appendChild = function (child) { this.children.push(child); };
+  h.ctx.document.createElement = tag => ({
+    tag, children: [], dataset: {}, className: "", textContent: "",
+    appendChild(child) { this.children.push(child); },
+    append(...children) { this.children.push(...children); },
+    replaceChildren(...children) { this.children = children; },
+  });
+  h.values.set("lifttracker_hevy_setup_v2", JSON.stringify({
+    activeAccount: "acct",
+    profiles: { acct: { accountId: "acct", exerciseMap: {}, dayRoutines: {}, dayOccurrences: {} } },
+  }));
+  vm.runInContext('hevyRuntimeTemplates = [{id:"bench",title:"Bench Press (Barbell)"},{id:"confirmed",title:"Smith Machine Bench Press"}]', h.ctx);
+  vm.runInContext("renderHevyExerciseMappings()", h.ctx);
+  const row = container.children[0];
+  const hint = row.children.find(child => child.tag === "div");
+  const select = row.children.find(child => child.tag === "select");
+  assert.equal(select.value, "bench");
+  assert.match(hint.textContent, /Closest name match selected/);
+  const profile = JSON.parse(h.values.get("lifttracker_hevy_setup_v2")).profiles.acct;
+  assert.deepEqual(profile.exerciseMap, {});
+  assert.ok(vm.runInContext("hevyValidateSetup(hevyMeta())", h.ctx).some(error => error.includes("Map Bench Press")));
+
+  profile.exerciseMap["11"] = "confirmed";
+  h.values.set("lifttracker_hevy_setup_v2", JSON.stringify({
+    activeAccount: "acct", profiles: { acct: profile },
+  }));
+  vm.runInContext("renderHevyExerciseMappings()", h.ctx);
+  const savedRow = container.children[0];
+  const savedHint = savedRow.children.find(child => child.tag === "div");
+  const savedSelect = savedRow.children.find(child => child.tag === "select");
+  assert.equal(savedSelect.value, "confirmed");
+  assert.match(savedHint.textContent, /Saved match/);
+});
+
 test("routine merge changes only the mapped exercise's normal sets and preserves special fields", () => {
   const h = context();
   const result = vm.runInContext(`(() => {

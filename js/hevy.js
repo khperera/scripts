@@ -123,6 +123,75 @@ function hevyUnwrapRoutine(response) {
 function hevyNormalizeName(name) {
   return String(name || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
+function hevyExerciseNameTokens(name) {
+  return String(name || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\brdl\b/g, "romanian deadlift")
+    .replace(/\bohp\b/g, "overhead press")
+    .replace(/\bdbs?\b/g, "dumbbell")
+    .replace(/\bdumbbells\b/g, "dumbbell")
+    .replace(/\bbs?b\b/g, "barbell")
+    .replace(/\bbarbells\b/g, "barbell")
+    .replace(/\bbb\b/g, "barbell")
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+}
+function hevyEditSimilarity(left, right) {
+  if (left === right) return 1;
+  if (!left || !right) return 0;
+  let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= left.length; i++) {
+    const current = [i];
+    for (let j = 1; j <= right.length; j++) {
+      current[j] = Math.min(
+        current[j - 1] + 1,
+        previous[j] + 1,
+        previous[j - 1] + (left[i - 1] === right[j - 1] ? 0 : 1),
+      );
+    }
+    previous = current;
+  }
+  return 1 - previous[right.length] / Math.max(left.length, right.length);
+}
+function hevyExerciseNameSimilarity(left, right) {
+  const leftTokens = [...new Set(hevyExerciseNameTokens(left))];
+  const rightTokens = [...new Set(hevyExerciseNameTokens(right))];
+  if (!leftTokens.length || !rightTokens.length) return 0;
+  const rightSet = new Set(rightTokens);
+  const common = leftTokens.filter(token => rightSet.has(token));
+  if (!common.length) return 0;
+
+  // A shared generic movement word ("press", "row", "curl") alone is too
+  // weak to suggest unrelated exercises such as bench press and leg press.
+  const generic = new Set([
+    "press", "row", "curl", "squat", "deadlift", "extension", "raise",
+    "fly", "pulldown", "pullover", "pushdown", "dip", "crunch", "plank",
+  ]);
+  const leftSpecific = leftTokens.filter(token => !generic.has(token));
+  const rightSpecific = rightTokens.filter(token => !generic.has(token));
+  if (leftSpecific.length && rightSpecific.length && !leftSpecific.some(token => rightSpecific.includes(token))) return 0;
+
+  const dice = (2 * common.length) / (leftTokens.length + rightTokens.length);
+  const leftSorted = leftTokens.slice().sort().join("");
+  const rightSorted = rightTokens.slice().sort().join("");
+  return dice * 0.8 + hevyEditSimilarity(leftSorted, rightSorted) * 0.2;
+}
+function hevyClosestExerciseMatch(name, templates, usedTemplateIds = new Set()) {
+  const exact = templates.filter(item => hevyNormalizeName(item.title) === hevyNormalizeName(name));
+  if (exact.length) {
+    exact.sort((a, b) => Number(usedTemplateIds.has(String(b.id))) - Number(usedTemplateIds.has(String(a.id))) || String(a.title).localeCompare(String(b.title)));
+    return { template: exact[0], score: 1, exact: true, used: usedTemplateIds.has(String(exact[0].id)) };
+  }
+  const scored = templates.map(template => ({
+    template,
+    score: hevyExerciseNameSimilarity(name, template.title),
+    used: usedTemplateIds.has(String(template.id)),
+  })).filter(match => match.score >= 0.42);
+  scored.sort((a, b) => b.score - a.score || Number(b.used) - Number(a.used) || String(a.template.title).localeCompare(String(b.template.title)));
+  return scored.length ? { ...scored[0], exact: false } : null;
+}
 async function hevyFetchPages(path, key, prop, pageSize, maxPages) {
   const all = [];
   for (let page = 1; page <= maxPages; page++) {
@@ -234,13 +303,18 @@ function renderHevyExerciseMappings() {
     row.className = "card hevy-map-row";
     const title = document.createElement("strong");
     title.textContent = exercise.name + " (" + exercise.cat + ")";
-    const exactMatches = hevyRuntimeTemplates.filter(item => hevyNormalizeName(item.title) === hevyNormalizeName(exercise.name));
-    const suggestion = exactMatches.find(item => used.has(String(item.id))) || exactMatches[0];
+    const savedId = String(profile.exerciseMap?.[String(exercise.id)] || "");
+    const savedMatch = hevyRuntimeTemplates.find(item => String(item.id) === savedId);
+    const suggestion = savedMatch ? null : hevyClosestExerciseMatch(exercise.name, hevyRuntimeTemplates, used);
+    const displayedMatch = savedMatch || suggestion?.template;
     const hint = document.createElement("div");
     hint.className = "tiny";
-    hint.textContent = suggestion
-      ? "Exact title suggestion: " + suggestion.title + (used.has(String(suggestion.id)) ? " (used in your Hevy routines)" : " (catalog only; confirm it's the same movement)")
-      : "No exact title match. Choose the same movement from Hevy's exercise catalog.";
+    hint.textContent = savedMatch
+      ? "Saved match: " + savedMatch.title + ". Change it below if this is not the same movement."
+      : suggestion
+        ? (suggestion.exact ? "Exact title match selected: " : "Closest name match selected: ") + suggestion.template.title +
+          (suggestion.used ? " (used in your Hevy routines). Check it and change it below if needed." : " (catalog match). Check it and change it below if needed.")
+        : "No close name match found. Choose the same movement from Hevy's exercise catalog.";
     const select = document.createElement("select");
     select.dataset.exerciseId = exercise.id;
     select.appendChild(new Option("Choose a Hevy exercise", ""));
@@ -250,13 +324,8 @@ function renderHevyExerciseMappings() {
       const option = new Option(item.title + (descriptor ? " — " + descriptor : "") + (used.has(String(item.id)) ? " · used in routine" : ""), String(item.id));
       select.appendChild(option);
     });
-    select.value = String(profile.exerciseMap?.[String(exercise.id)] || "");
-    const suggestButton = document.createElement("button");
-    suggestButton.type = "button";
-    suggestButton.textContent = "Use name suggestion";
-    suggestButton.disabled = !suggestion;
-    suggestButton.onclick = () => { select.value = String(suggestion.id); };
-    row.append(title, hint, select, suggestButton);
+    select.value = String(displayedMatch?.id || "");
+    row.append(title, hint, select);
     container.appendChild(row);
   });
   $("#hevySaveExerciseMap").disabled = activeExercises.length === 0;
