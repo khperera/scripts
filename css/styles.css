@@ -316,3 +316,7 @@ th { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacin
 
 .prog-chart-wrap { position: relative; height: 230px; }
 .prog-chart-wrap canvas { cursor: ns-resize; }
+
+/* The planner has its own layout and styles inside a same-origin frame. */
+.planner-frame { max-width: 100%; }
+@media (max-width: 600px) { .planner-frame { height: calc(100vh - 70px) !important; min-height: 700px !important; } }

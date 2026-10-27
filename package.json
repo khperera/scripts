@@ -4,7 +4,7 @@
   "scripts": {
     "test:load-spacing": "node --test tests/load-spacing.test.cjs",
     "test": "PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright playwright test",
-    "build": "rm -rf www && mkdir -p www && cp index.html manifest.webmanifest www/ && cp -r assets icons css js www/",
+    "build": "rm -rf www && mkdir -p www && cp index.html planner.html manifest.webmanifest www/ && cp -r assets icons css js www/",
     "cap:sync": "npm run build && cap sync",
     "cap:build": "npm run build && cap sync android"
   },

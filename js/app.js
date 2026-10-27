@@ -65,6 +65,7 @@ function renderTabs() {
         case 'settings': renderSettings(); break;
         case 'progression': renderProgression(); break;
         case 'analytics': renderAnalytics(); break;
+        case 'planner': break;
       }
     };
   });

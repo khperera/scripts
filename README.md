@@ -2,7 +2,7 @@
 
 A modular, **vanilla HTML/CSS/JavaScript** weightlifting tracker that runs entirely in the browser. No build step, no bundler, no backend, and no framework required.
 
-All state is stored in `localStorage`, making it completely offline-capable and persistent across sessions.
+LiftTracker workout data and Recovery Planner settings are stored separately in browser storage. Planner schedules persist in this browser, but they are not included in LiftTracker JSON export/import. The planner files are included in the production build.
 
 ## Features
 
@@ -30,6 +30,7 @@ All state is stored in `localStorage`, making it completely offline-capable and 
 ```
 scripts/
 ├── index.html              # HTML entry point
+├── planner.html            # 14-day concurrent training recovery planner
 ├── css/
 │   └── styles.css          # All styles
 ├── js/
@@ -57,6 +58,7 @@ scripts/
 | **Settings** | Configure progression rates and units (lb/kg) |
 | **Progression** | Interactive charts for RPE and rep percentages (draggable) |
 | **Analytics** | Trends, summaries, and e1RM charts |
+| **Recovery Planner** | Plan a repeating 14-day lifting and cycling schedule with recovery constraints |
 
 ## How It Works
 
