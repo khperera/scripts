@@ -49,6 +49,7 @@ class CompanionTests(unittest.TestCase):
 
     def test_uuid_reads_and_write_allowlist(self):
         rid = '12345678-abcd-1234-5678-123456789abc'
+        self.assertEqual(self.request('/api/hevy/routine_folders?page=1&pageSize=10')[0], 200)
         self.assertEqual(self.request('/api/hevy/workouts/' + rid)[0], 200)
         self.assertEqual(self.request('/api/hevy/routines/' + rid, 'PUT', {'routine': {'title': 'Test'}},
             {'Origin': self.base, 'Content-Type': 'application/json'})[0], 200)

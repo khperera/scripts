@@ -151,20 +151,32 @@
       </div>
       <div class="card" id="hevySettings">
         <h3>Hevy sync</h3>
-        <p class="tiny">Enter your Hevy API key here, or use one already set on the companion. An entered key stays in companion memory and is cleared when it exits.</p>
+        <p class="tiny">Map each exercise and active training day once. Android calls Hevy directly; in a browser, run the local companion. The entered key stays in memory for this app session.</p>
         <label for="hevyApiKey">Hevy API key</label>
         <div class="row"><input id="hevyApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste API key" style="flex:1;min-width:180px;"><button id="hevySaveKey">Use key</button><button id="hevyForgetKey">Forget key</button></div>
-        <div class="row"><button id="hevyConnect">Check connection</button><span id="hevyStatus" class="tiny">Checking companion…</span></div>
-        <label>LiftTracker day to sync</label><select id="hevyDay"></select>
-        <label>Hevy routine</label><select id="hevyRoutine"><option value="">Load routines first</option></select>
-        <label>Exercise mapping (LiftTracker exercise ID → Hevy exercise template ID, JSON)</label><textarea id="hevyMapping" rows="3" placeholder='{"1":"template-id"}'></textarea>
-        <button id="hevyLoadExercises">Load Hevy exercises for mapping</button><div id="hevyExerciseMappings"></div>
-        <button id="hevySaveMapping">Save mapping</button>
-        <label><input id="hevyAuto" type="checkbox"> Push changes automatically while this app is open</label>
-        <button id="hevyPush">Push this day’s top set + myorep plan</button>
-        <button id="hevyResetSnapshot">Reset conflict baseline for selected routine</button>
-        <p class="tiny">The plan uses one prescribed top set, then the load LiftTracker derives from 13 reps for 5-rep mini sets. Mini-set count follows the selected template’s total set count. Routine fields and warmups are preserved. This updates a routine; it does not create a completed workout.</p>
-        <button id="hevyImport">Import workout results</button><div id="hevyResults" class="tiny"></div>
+        <div class="row"><button id="hevyConnect">Connect and load my Hevy routines</button><span id="hevyStatus" class="tiny">Not connected</span></div>
+        <div id="hevyWizard" hidden>
+          <h4>1. Confirm exercise matches</h4>
+          <p class="tiny">Exact title suggestions prioritize Hevy exercises already used in your routines. Confirm the same movement for every LiftTracker exercise used on a non-empty day.</p>
+          <div id="hevyExerciseMappings"></div>
+          <button id="hevySaveExerciseMap">Save exercise matches</button>
+          <h4>2. Map active training days to routines</h4>
+          <p class="tiny">Each active day needs its own Hevy routine. If a routine repeats an exercise, choose the exact occurrence for each LiftTracker exercise.</p>
+          <div id="hevyDayMappings"></div>
+          <button id="hevySaveDayMap">Save day and occurrence matches</button>
+          <h4>3. Review the full sync</h4>
+          <p class="tiny">Review every routine before the first write. LiftTracker will prepare all mapped routines for the selected week. Each exercise gets one prescribed top set, then template sets minus one five-rep mini sets at the load derived from 13 reps. Warmups and special sets stay intact.</p>
+          <button id="hevyPreview">Review all mapped routines</button>
+          <div id="hevyPreviewResults" class="tiny" aria-live="polite"></div>
+          <button id="hevyEnableSync" hidden>Confirm and enable sync for all routines</button>
+          <label><input id="hevyAuto" type="checkbox"> Sync automatically on app open and plan changes</label>
+          <button id="hevySyncNow" hidden>Sync all routines now</button>
+          <button id="hevyResetSetup">Clear mappings and start over</button>
+          <p class="tiny">Sync updates Hevy routines; it does not create a completed workout or launch Hevy. Conflicts stop the batch before any write. Hevy saves routines one at a time, so a connection failure during saving can leave some routines updated; check status and review again before retrying.</p>
+          <h4>Imported workout results</h4>
+          <button id="hevyImport">Import workout results</button>
+          <div id="hevyResults" class="tiny"></div>
+        </div>
       </div>
     </div>
   </section>

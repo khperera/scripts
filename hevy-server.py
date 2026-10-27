@@ -99,7 +99,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.respond(405, {'error': 'Method is not available.'})
         if url.path.startswith('/api/hevy/'):
             route = url.path[len('/api/hevy'):]
-            lists = {'/user/info', '/exercise_templates', '/routines', '/workouts', '/workouts/events'}
+            lists = {'/user/info', '/exercise_templates', '/routines', '/routine_folders', '/workouts', '/workouts/events'}
             detail = re.fullmatch(r'/(routines|workouts)/([A-Za-z0-9_-]{1,100})', route)
             if route not in lists and not detail:
                 return self.respond(404, {'error': 'Endpoint is not available.'})
