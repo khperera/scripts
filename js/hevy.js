@@ -823,6 +823,27 @@ async function hevyApplyPreview(enable) {
   hevySetStatus("Prepared " + fresh.length + " Hevy routines for week " + (Number($("#week").value) || 1) + ". " + changedCount + " changed.");
   return { count: fresh.length, changedCount };
 }
+async function hevyConfirmInitialSync() {
+  const profile = hevyMeta();
+  if (profile) {
+    profile.syncStatus = "syncing";
+    profile.syncError = null;
+    profile.lastSyncAttempt = new Date().toISOString();
+    hevySave(profile);
+    hevyRenderCurrentState();
+  }
+  try {
+    return await hevyApplyPreview(true);
+  } catch (error) {
+    if (profile) {
+      profile.syncStatus = "failed";
+      profile.syncError = error.message;
+      profile.lastSyncAttempt = profile.lastSyncAttempt || new Date().toISOString();
+      hevySave(profile);
+    }
+    throw error;
+  }
+}
 async function hevySyncAll(reason = "manual") {
   if (hevySyncBusy) return;
   hevySyncBusy = true;
@@ -1002,7 +1023,7 @@ function initHevy() {
     try { hevySaveDayMappings(); } catch (error) { hevySetStatus(error.message); }
   };
   $("#hevyPreview").onclick = () => hevyReviewAllRoutines().catch(error => hevySetStatus(error.message));
-  $("#hevyEnableSync").onclick = () => hevyApplyPreview(true).catch(error => hevySetStatus(error.message));
+  $("#hevyEnableSync").onclick = () => hevyConfirmInitialSync().catch(error => hevySetStatus(error.message));
   $("#hevyTodaySync").onclick = hevyTodaySync;
   $("#hevyResetSetup").onclick = () => {
     const profile = hevyMeta();

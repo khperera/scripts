@@ -281,6 +281,18 @@ test("Today sync button routes incomplete setup to mapping and never writes earl
   assert.match(h.getElement("#hevyStatus").textContent, /Finish or review/);
 });
 
+test("failed initial sync confirmation persists its failure state and timestamp", async () => {
+  const h = context();
+  const profile = { accountId: "acct", exerciseMap: {}, dayRoutines: {}, dayOccurrences: {}, enabled: true };
+  h.values.set("lifttracker_hevy_setup_v2", JSON.stringify({ activeAccount: "acct", profiles: { acct: profile } }));
+  await assert.rejects(vm.runInContext("hevyConfirmInitialSync()", h.ctx), /Map Bench Press/);
+  const saved = JSON.parse(h.values.get("lifttracker_hevy_setup_v2")).profiles.acct;
+  assert.equal(saved.syncStatus, "failed");
+  assert.ok(saved.lastSyncAttempt);
+  vm.runInContext("hevyRenderCurrentState()", h.ctx);
+  assert.match(h.getElement("#hevyCurrentState").textContent, /Last sync failed at/);
+});
+
 test("editing prescribed values after review requires a new preview", async () => {
   const h = context({ fetch: async () => ({ ok: true, status: 200, json: async () => ({ routine: { id: "a", title: "A", exercises: [{ exercise_template_id: "bench", sets: [] }] } }) }) });
   h.ctx.prescribeLoad = (tm, reps) => reps === 13 ? 60 : tm * 0.8;
