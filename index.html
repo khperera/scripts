@@ -37,7 +37,7 @@
     <button class="tab" data-page="planner">Recovery Planner</button>
   </nav>
   <div style="margin-left: auto;" class="row">
-    <button id="exportBtn">Export</button>
+    <button id="exportBtn" title="On Android, choose Downloads in the system save dialog">Export</button>
     <div class="file-input pill">
       <input type="file" id="importFile" accept=".json">
       Import
@@ -60,6 +60,12 @@
       <div class="card">
         <label>&nbsp;</label>
         <button id="advanceBtn">Advance Week/Day</button>
+      </div>
+      <div class="card">
+        <label>Hevy</label>
+        <button id="hevyTodaySync">Set up Hevy sync</button>
+        <button id="hevyTodayImport">Import Hevy history &amp; close week</button>
+        <div id="hevyCurrentState" class="tiny" aria-live="polite">Checking saved Hevy state…</div>
       </div>
       <div class="card">
         <label>Unit</label>
@@ -165,6 +171,39 @@
         <label>Weeks per cycle</label>
         <input id="cycleLength" type="number" min="2" max="52" step="1" value="6">
         <p class="tiny">The last week of each cycle is a deload (87.5% load, −1 set).</p>
+      </div>
+      <div class="card" id="hevySettings">
+        <h3>Hevy sync</h3>
+        <p class="tiny">Map each exercise and active training day once. Android saves your API key encrypted with Android Keystore on this device; browser use keeps the key in the local companion session.</p>
+        <p class="tiny">LiftTracker’s standard Export/Import includes a separate, account-bound backup of exercise, day, and routine-occurrence mappings. The API key is never exported. Imported mappings require reconnecting to Hevy and reviewing setup before routine sync is enabled.</p>
+        <label for="hevyApiKey">Hevy API key</label>
+        <div class="row"><input id="hevyApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste API key" style="flex:1;min-width:180px;"><button id="hevySaveKey">Use key</button><button id="hevyForgetKey">Forget key</button></div>
+        <div id="hevyKeyState" class="tiny" aria-live="polite">Checking key storage…</div>
+        <div class="row"><button id="hevyConnect">Connect and load my Hevy routines</button><span id="hevyStatus" class="tiny">Not connected</span></div>
+        <div id="hevyWizard" hidden>
+          <h4>1. Confirm exercise matches</h4>
+          <p class="tiny">The closest exercise name is preselected, prioritizing Hevy exercises already used in your routines. Check each match and change it if needed; saving these choices confirms them.</p>
+          <div id="hevyExerciseMappings"></div>
+          <button id="hevySaveExerciseMap">Save exercise matches</button>
+          <h4>2. Map active training days to routines</h4>
+          <p class="tiny">Each active day needs its own Hevy routine. If a routine repeats an exercise, choose the exact occurrence for each LiftTracker exercise.</p>
+          <div id="hevyDayMappings"></div>
+          <button id="hevySaveDayMap">Save day and occurrence matches</button>
+          <h4>3. Review the full sync</h4>
+          <p class="tiny">Review every routine before the first write. LiftTracker will prepare all mapped routines for the selected week. Each exercise gets one prescribed top set, then template sets minus one five-rep mini sets at the load derived from 13 reps. Warmups and special sets stay intact.</p>
+          <button id="hevyPreview">Review all mapped routines</button>
+          <div id="hevyPreviewResults" class="tiny" aria-live="polite"></div>
+          <button id="hevyEnableSync" hidden>Confirm initial sync for all routines</button>
+          <p class="tiny">Routine updates happen only when you press the Hevy button on Today or confirm the initial sync below.</p>
+          <button id="hevyResetSetup">Clear mappings and start over</button>
+          <p class="tiny">Sync updates Hevy routines; it does not create a completed workout or launch Hevy. Conflicts stop the batch before any write. Hevy saves routines one at a time, so a connection failure during saving can leave some routines updated; check status and review again before retrying.</p>
+          <h4>Recent Hevy training</h4>
+          <p class="tiny">Import mapped working sets from the selected lookback and add them to LiftTracker’s workout log. Missing Hevy RPE is recorded as RPE 10; without a known historical program week, target RPE is left blank and Close Week uses its usual 8.5 fallback. After import, the regular Close Week confirmation can progress TMs. The existing code scores sets from the last 7 days and uses best e1RM from the last 42 days; its RPE score is calculated but currently does not change the TM result.</p>
+          <label for="hevyLookbackWeeks">Look back (weeks; up to 6 because TM reference uses 42 days)</label>
+          <input id="hevyLookbackWeeks" type="number" min="1" max="6" step="1" value="6">
+          <button id="hevyImport">Import recent Hevy sets &amp; close week</button>
+          <div id="hevyResults" class="tiny"></div>
+        </div>
       </div>
       <div class="card">
         <h3>Appearance</h3>
@@ -361,6 +400,7 @@
 <script src="js/progression.js"></script>
 <script src="js/analytics.js"></script>
 <script src="js/app.js"></script>
+  <script src="js/hevy.js"></script>
 
 </body>
 </html>

@@ -58,10 +58,22 @@ function createSchema(db) {
     rpe        REAL,
     e1rm       REAL,
     target_rpe REAL,
-    day        TEXT
+    day        TEXT,
+    hevy_source_key TEXT UNIQUE
   )`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_log_ex_id ON log(ex_id)`);
   db.run(`CREATE INDEX IF NOT EXISTS idx_log_date  ON log(date)`);
+}
+
+// Older saved databases predate Hevy-imported log rows. Add a stable source
+// key so a refreshed Hevy history can replace prior imported sets without
+// duplicating them, while leaving manually logged rows untouched.
+function ensureHevyLogSourceColumn(db) {
+  const columns = db.exec('PRAGMA table_info(log)')[0]?.values || [];
+  if (!columns.some(row => row[1] === 'hevy_source_key')) {
+    db.run('ALTER TABLE log ADD COLUMN hevy_source_key TEXT');
+    db.run('CREATE UNIQUE INDEX IF NOT EXISTS idx_log_hevy_source_key ON log(hevy_source_key)');
+  }
 }
 
 function writeStateToDb(db, s) {
@@ -120,11 +132,12 @@ function writeStateToDb(db, s) {
 
   for (const entry of s.log) {
     db.run(
-      'INSERT INTO log (ex_id,date,weight,reps,rpe,e1rm,target_rpe,day) VALUES (?,?,?,?,?,?,?,?)',
+      'INSERT INTO log (ex_id,date,weight,reps,rpe,e1rm,target_rpe,day,hevy_source_key) VALUES (?,?,?,?,?,?,?,?,?)',
       [
         entry.exId, entry.date, entry.weight, entry.reps, entry.rpe, entry.e1rm,
         entry.targetRpe != null ? entry.targetRpe : null,
-        entry.day      != null ? String(entry.day) : null
+        entry.day      != null ? String(entry.day) : null,
+        entry.hevySourceKey || null
       ]
     );
   }
@@ -204,7 +217,7 @@ function readStateFromDb(db) {
 
   // log
   const logRes = db.exec(
-    'SELECT ex_id, date, weight, reps, rpe, e1rm, target_rpe, day FROM log ORDER BY date, id'
+    'SELECT ex_id, date, weight, reps, rpe, e1rm, target_rpe, day, hevy_source_key FROM log ORDER BY date, id'
   );
   s.log = logRes.length
     ? logRes[0].values.map(r => ({
@@ -215,7 +228,8 @@ function readStateFromDb(db) {
         rpe:       r[4],
         e1rm:      r[5],
         targetRpe: r[6],
-        day:       r[7]
+        day:       r[7],
+        hevySourceKey: r[8] || null
       }))
     : [];
 
@@ -322,6 +336,7 @@ async function initDatabase() {
     const binary    = new Uint8Array(binaryStr.length);
     for (let i = 0; i < binaryStr.length; i++) binary[i] = binaryStr.charCodeAt(i);
     const db          = new SQL.Database(binary);
+    ensureHevyLogSourceColumn(db);
     const loadedState = readStateFromDb(db);
     applyCompatGuards(loadedState);
     return { db, loadedState };

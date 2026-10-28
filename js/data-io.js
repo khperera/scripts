@@ -18,8 +18,8 @@ function saveSettings() {
   alert('Settings saved!');
 }
 
-function closeWeek() {
-  if (!confirm('Close this week and progress all Training Maxes? This cannot be undone.')) return;
+function closeWeek(message = 'Close this week and progress all Training Maxes? This cannot be undone.') {
+  if (!confirm(message)) return false;
   state.exercises.forEach(exercise => {
     progressTrainingMax(exercise);
   });
@@ -29,6 +29,7 @@ function closeWeek() {
   alert('Week closed! Training maxes updated.');
   renderExercises();
   renderToday();
+  return true;
 }
 
 function resetTemplates() {
@@ -44,39 +45,33 @@ function resetTemplates() {
   }
 }
 
+function buildExportPayload() {
+  const payload = { ...state };
+  if (typeof hevyMappingBackup === 'function') payload.hevyMappings = hevyMappingBackup();
+  return payload;
+}
+
 async function exportData() {
-  const dataStr = JSON.stringify(state, null, 2);
+  const dataStr = JSON.stringify(buildExportPayload(), null, 2);
   const filename = `lifttracker-${new Date().toISOString().split('T')[0]}.json`;
   const blob = new Blob([dataStr], { type: 'application/json' });
 
-  // Capacitor (Android APK): write to device storage.
-  const fs = window.Capacitor?.Plugins?.Filesystem;
-  if (fs) {
-    // Android ≤10: shared Downloads folder via legacy external storage permission.
-    try {
-      await fs.writeFile({
-        path: `Download/${filename}`,
-        data: dataStr,
-        directory: 'EXTERNAL_STORAGE',
-        encoding: 'utf8',
-        recursive: true,
-      });
-      alert(`Saved to Downloads/${filename}`);
+  // Android: use the system document picker so the user can save in Downloads
+  // or another visible location. App-private Android/data storage is not used.
+  if (window.Capacitor?.getPlatform?.() === 'android') {
+    const exporter = window.Capacitor?.Plugins?.BackupExport;
+    if (!exporter?.saveBackup) {
+      alert('Export is unavailable in this app build. Update the app and try again.');
       return;
-    } catch (_) {}
-
-    // Android 11+: app-specific external storage, no extra permissions required.
-    // Find it in Files → Internal Storage → Android → data → com.lifttracker.app → files
+    }
     try {
-      await fs.writeFile({
-        path: filename,
-        data: dataStr,
-        directory: 'EXTERNAL',
-        encoding: 'utf8',
-      });
-      alert(`Saved to app files folder.\n\nIn Files app: Internal Storage → Android → data → com.lifttracker.app → files → ${filename}`);
-      return;
-    } catch (_) {}
+      const result = await exporter.saveBackup({ filename, content: dataStr });
+      if (result?.cancelled) return;
+      alert(`Backup saved as ${filename}. Choose Downloads in the Android save dialog to keep it in your Downloads folder.`);
+    } catch (e) {
+      alert(`Export failed: ${e.message || 'Android could not save the backup.'}`);
+    }
+    return;
   }
 
   // Web Share API (Android share sheet, iOS share sheet).
@@ -111,9 +106,17 @@ async function importData(event) {
   const file = event.target.files[0];
   if (!file) return;
 
+  const originalState = JSON.parse(JSON.stringify(state));
+  let stateReplaced = false;
   try {
     const text = await file.text();
     const importedData = JSON.parse(text);
+    const includesHevyMappings = Object.prototype.hasOwnProperty.call(importedData || {}, 'hevyMappings');
+    const hevyMappings = includesHevyMappings ? importedData.hevyMappings : null;
+    if (includesHevyMappings && typeof hevyValidateMappingBackup !== 'function') {
+      throw new Error('This app version cannot import the Hevy mappings in this file.');
+    }
+    if (importedData && typeof importedData === 'object') delete importedData.hevyMappings;
 
     // Validate imported data structure
     if (importedData && typeof importedData === 'object') {
@@ -122,6 +125,7 @@ async function importData(event) {
       // an older export that doesn't include them.
       Object.keys(state).forEach(key => { delete state[key]; });
       Object.assign(state, importedData);
+      stateReplaced = true;
 
       // Run migration if imported data is old format (no days array)
       if (!state.days) {
@@ -145,7 +149,14 @@ async function importData(event) {
         state.cycleLength = 6;
       }
 
+      // Validate mappings against the imported exercise/day IDs before writing
+      // the new state. Older backups without this optional field keep existing
+      // Hevy mappings unchanged.
+      if (includesHevyMappings) hevyValidateMappingBackup(hevyMappings, state);
+
       persist();
+      if (includesHevyMappings) hevyRestoreMappingBackup(hevyMappings);
+      if (typeof hevyRequireMappingReview === 'function') hevyRequireMappingReview();
 
       // Re-render all views
       renderSettings();
@@ -155,12 +166,20 @@ async function importData(event) {
       renderToday();
       renderHistory();
       if (!$('#page-progression').hidden) renderProgression();
+      if (typeof renderHevy === 'function') renderHevy();
+      if (typeof hevyRenderCurrentState === 'function') hevyRenderCurrentState();
 
-      alert('Data imported successfully!');
+      alert(includesHevyMappings
+        ? 'Data and Hevy mappings imported. Reconnect to Hevy and review the routine setup before syncing.'
+        : 'Data imported successfully! Existing Hevy mappings were kept; review setup again before syncing.');
     } else {
       throw new Error('Invalid file format');
     }
   } catch (error) {
+    if (stateReplaced) {
+      Object.keys(state).forEach(key => { delete state[key]; });
+      Object.assign(state, originalState);
+    }
     alert('Error importing file: ' + error.message);
   }
 

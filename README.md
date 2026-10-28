@@ -25,12 +25,39 @@ LiftTracker workout data and Recovery Planner settings are stored separately in 
 4. Log your lifts with weight, reps, and RPE
 5. View progression trends and analytics
 
+## Hevy connection
+
+In Android, open the Hevy card on **Today**, paste your API key, and choose **Use key**. The app validates and stores it encrypted with an AES/GCM key held by Android Keystore; only encrypted data is kept in app-private preferences, excluded from Android backup. The key is restored to runtime memory after restart and sent directly to Hevy with Capacitor native HTTP. **Forget key** removes the encrypted value and its Keystore key. In a regular browser, direct Hevy access depends on Hevy's CORS policy, so use the companion server below. The browser sends the key to the loopback companion, which keeps it in memory or reads `HEVY_API_KEY`. The API key is never placed in LiftTracker state or exports.
+
+On Android, **Export** opens the system Save As picker and starts in Downloads when the device supports it. Confirm the destination in the picker; the resulting JSON is stored in the visible location you select, not in the restricted `Android/data` app folder. If the picker is cancelled, no file is written.
+
+Exercise and day mappings are stored locally per Hevy account and survive app restarts. The Today page reports saved mapping counts, whether the current account mappings have been verified after connecting, and the last sync outcome/time. Restoring a saved API key reconnects for a read-only mapping refresh; it never syncs automatically.
+
+The normal LiftTracker **Export** includes a versioned, whitelisted copy of each Hevy account's exercise, day-to-routine, and routine-occurrence mappings. Importing a file with mappings restores them under their account IDs but clears saved routine snapshots and sync approval; reconnect and review setup before syncing. Importing an older file without a Hevy mapping section leaves existing mappings unchanged. API keys, routine snapshots, and cached workout data are never included in the mapping backup.
+
+Setup preselects the closest Hevy exercise-name match for each active LiftTracker exercise, prioritizing templates used in the user's routines. Review and edit each selection before saving; a suggestion alone does not count as confirmation. Then map each active training day to a distinct Hevy routine. Repeated exercises require selecting their specific routine occurrence. No routine is changed until all mappings are complete and the user reviews the full preview.
+
+The first confirmed sync prepares every mapped routine for the selected week. Each mapped exercise receives the Today top-set prescription, followed by the remaining template set slots as five-rep mini sets at the 13-rep-derived load. LiftTracker adds its target RPE and week to each mapped exercise's notes, replacing only its previous managed RPE line while preserving other notes, warmups, special sets, rest times, supersets, and unrelated exercises. Sync is manual: press **Sync Hevy now** on Today to update all mapped routines for the selected week. Conflicts stop a batch before any write. Hevy saves routines one at a time, so a connection failure during saving can leave some routines updated. Sync updates routines; it does not create completed workouts or launch Hevy.
+
+Hevy history import is manual from the **Import Hevy history & close week** button on Today or the matching Settings button. Choose a 1–6 week lookback (default 6, matching LiftTracker's 42-day rolling e1RM window). The app fetches at most 1,000 recent workouts (100 pages of 10), then imports eligible mapped working sets whose workout dates fall in that range. It uses the set's Hevy RPE when valid, otherwise RPE 10, and computes e1RM with LiftTracker's existing formula. These sets are added to the normal History log and are persisted in SQLite with stable account/workout/exercise-occurrence/set IDs; repeating an import updates changed sets and removes deleted sets within the covered range without duplicating them or touching manual logs. Previously imported records outside the refreshed range remain in the log.
+
+After importing, LiftTracker asks the same Close Week confirmation before progressing TMs. If you decline, the sets are still imported but TMs are unchanged. The current Close Week behavior scores sets from the last 7 days and references the best e1RM from the last 42 days; imported RPE is recorded and the existing scoring fallback is 8.5 when no target RPE is known, but the current progression function computes an RPE-based candidate and does not apply it. Its actual TM update is the maximum of the current TM and best rolling 42-day e1RM. This import does not replay several historical Close Weeks or infer historical target RPEs.
+
+For browser use, start the companion and open `http://127.0.0.1:8787`:
+
+```sh
+python3 hevy-server.py
+```
+
+The browser companion forgets a session key when it exits or when you choose **Forget key**. Live Hevy API validation requires access to `api.hevyapp.com`.
+
 ## Project Structure
 
 ```
 scripts/
 ├── index.html              # HTML entry point
 ├── planner.html            # 14-day concurrent training recovery planner
+├── hevy-server.py          # Optional loopback companion; holds the API key in memory
 ├── css/
 │   └── styles.css          # All styles
 ├── js/
@@ -41,9 +68,12 @@ scripts/
 │   ├── pages.js            # Rendering for all pages
 │   ├── progression.js      # Interactive progression charts
 │   ├── analytics.js        # Trend analysis and summaries
-│   └── app.js              # App initialization and event listeners
+│   ├── app.js              # App initialization and event listeners
+│   └── hevy.js             # Hevy mapping, routine sync, and workout import
 ├── tests/
-│   └── hamburger.spec.js   # Playwright E2E tests
+│   ├── hamburger.spec.js   # Playwright E2E tests
+│   ├── hevy-client.test.cjs # Hevy mapping/sync/import tests
+│   └── test_hevy_server.py # Companion server safety tests
 └── package.json            # Dev dependency (Playwright)
 ```
 

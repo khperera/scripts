@@ -2,13 +2,13 @@ name: Build APK and Deploy Web
 
 on:
   push:
+    branches: [main, claude/hevy-integration-20261026]
+  pull_request:
     branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -17,7 +17,12 @@ concurrency:
 jobs:
   deploy-pages:
     name: Deploy to GitHub Pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
