@@ -56,34 +56,22 @@ async function exportData() {
   const filename = `lifttracker-${new Date().toISOString().split('T')[0]}.json`;
   const blob = new Blob([dataStr], { type: 'application/json' });
 
-  // Capacitor (Android APK): write to device storage.
-  const fs = window.Capacitor?.Plugins?.Filesystem;
-  if (fs) {
-    // Android ≤10: shared Downloads folder via legacy external storage permission.
-    try {
-      await fs.writeFile({
-        path: `Download/${filename}`,
-        data: dataStr,
-        directory: 'EXTERNAL_STORAGE',
-        encoding: 'utf8',
-        recursive: true,
-      });
-      alert(`Saved to Downloads/${filename}`);
+  // Android: use the system document picker so the user can save in Downloads
+  // or another visible location. App-private Android/data storage is not used.
+  if (window.Capacitor?.getPlatform?.() === 'android') {
+    const exporter = window.Capacitor?.Plugins?.BackupExport;
+    if (!exporter?.saveBackup) {
+      alert('Export is unavailable in this app build. Update the app and try again.');
       return;
-    } catch (_) {}
-
-    // Android 11+: app-specific external storage, no extra permissions required.
-    // Find it in Files → Internal Storage → Android → data → com.lifttracker.app → files
+    }
     try {
-      await fs.writeFile({
-        path: filename,
-        data: dataStr,
-        directory: 'EXTERNAL',
-        encoding: 'utf8',
-      });
-      alert(`Saved to app files folder.\n\nIn Files app: Internal Storage → Android → data → com.lifttracker.app → files → ${filename}`);
-      return;
-    } catch (_) {}
+      const result = await exporter.saveBackup({ filename, content: dataStr });
+      if (result?.cancelled) return;
+      alert(`Backup saved as ${filename}. Choose Downloads in the Android save dialog to keep it in your Downloads folder.`);
+    } catch (e) {
+      alert(`Export failed: ${e.message || 'Android could not save the backup.'}`);
+    }
+    return;
   }
 
   // Web Share API (Android share sheet, iOS share sheet).

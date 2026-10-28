@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "test:load-spacing": "node --test tests/load-spacing.test.cjs",
-    "test:hevy": "python3 -m unittest tests.test_hevy_server && node --test tests/hevy-client.test.cjs tests/db-hevy.test.cjs",
+    "test:hevy": "python3 -m unittest tests.test_hevy_server && node --test tests/hevy-client.test.cjs tests/db-hevy.test.cjs tests/data-export.test.cjs",
     "hevy:serve": "python3 hevy-server.py",
     "test": "PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright playwright test",
     "build": "rm -rf www && mkdir -p www && cp index.html planner.html manifest.webmanifest www/ && cp -r assets icons css js www/",
